@@ -128,9 +128,11 @@ class PrivateKey{
 class HDPrivateKey{
     public:
         HDPrivateKey();
-        // TODO: add depth, fingerprint, childnumber to constructor
-        HDPrivateKey(uint8_t secret[32], uint8_t chain_code[32], bool use_testnet = false);
-        // TODO: finish implementation
+        HDPrivateKey(uint8_t secret[32], uint8_t chain_code[32], 
+                     uint8_t key_depth = 0,
+                     uint8_t fingerprint_arr[4] = NULL,
+                     uint32_t childnumber = 0,
+                     bool use_testnet = false);
         HDPrivateKey(char xprvArr[]);
         ~HDPrivateKey();
 
@@ -142,13 +144,15 @@ class HDPrivateKey{
 
         int fromSeed(uint8_t seed[64], bool use_testnet = false);
         int fromMnemonic(char mnemonic[], char password[], bool use_testnet = false);
-        // TODO: implement char[] versions of the following functions:
+        int xprv(char arr[], size_t len);
+        int xpub(char arr[], size_t len);
         String xprv();
         String xpub();
 
         HDPrivateKey child(uint32_t index);
         HDPrivateKey hardenedChild(uint32_t index);
         bool isValid();
+        operator String(){ return xprv(); };
 };
 
 // TODO: implement HDPublicKey class

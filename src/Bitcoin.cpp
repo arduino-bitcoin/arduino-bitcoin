@@ -416,6 +416,17 @@ PrivateKey::PrivateKey(const String wifString){
 }
 
 // ---------------------------------------------------------------- HDPrivateKey class
+
+// TODO: add yprv, zprv, uprv, vprv and store address type:
+// https://github.com/satoshilabs/slips/blob/master/slip-0132.md
+// useful tool: in https://iancoleman.io/bip39/
+
+uint8_t XPRV_MAINNET_PREFIX[4] = { 0x04, 0x88, 0xAD, 0xE4 };
+uint8_t XPRV_TESTNET_PREFIX[4] = { 0x04, 0x35, 0x83, 0x94 };
+
+uint8_t XPUB_MAINNET_PREFIX[4] = { 0x04, 0x88, 0xB2, 0x1E };
+uint8_t XPUB_TESTNET_PREFIX[4] = { 0x04, 0x35, 0x87, 0xCF };
+
 // TODO: make friends with PrivateKey to get secret or inherit from it
 HDPrivateKey::HDPrivateKey(void){
     privateKey.compressed = true;
@@ -424,20 +435,46 @@ HDPrivateKey::HDPrivateKey(void){
     memset(fingerprint, 0, 4);
     childNumber = 0;
 }
-HDPrivateKey::HDPrivateKey(uint8_t secret[32], uint8_t chain_code[32], bool use_testnet){
+HDPrivateKey::HDPrivateKey(uint8_t secret[32],
+                           uint8_t chain_code[32],
+                           uint8_t key_depth,
+                           uint8_t fingerprint_arr[4],
+                           uint32_t child_number,
+                           bool use_testnet){
+
     privateKey = PrivateKey(secret, true, use_testnet);
     memcpy(chainCode, chain_code, 32);
+    depth = key_depth;
+    childNumber = child_number;
+    if(fingerprint_arr != NULL){
+        memcpy(fingerprint, fingerprint_arr, 4);
+    }else{
+        memset(fingerprint, 0, 4);
+    }
 }
 HDPrivateKey::HDPrivateKey(char xprvArr[]){
     size_t xprvLen = strlen(xprvArr);
     byte arr[85] = { 0 };
     size_t l = fromBase58Check(xprvArr, xprvLen, arr, sizeof(arr));
-    //     uint8_t prefix[] = { 0x04, 0x35, 0x83, 0x94};
-    //     memcpy(hex, prefix, 4);
-    // }else{
-    //     uint8_t prefix[] = { 0x04, 0x88, 0xAD, 0xE4};
-    //     memcpy(hex, prefix, 4);
-
+    if( (memcmp(arr, XPRV_MAINNET_PREFIX, 4)!=0) && (memcmp(arr, XPRV_TESTNET_PREFIX, 4)!=0) ){
+        // unknown format. TODO: implement yprv, zprv etc
+        return;
+    }
+    bool testnet = false;
+    if(memcmp(arr, XPRV_TESTNET_PREFIX, 4)==0){
+        testnet = true;
+    }
+    depth = arr[4];
+    memcpy(fingerprint, arr+5, 4);
+    childNumber = 0;
+    for(int i=0; i<4; i++){
+        childNumber <<= 8;
+        childNumber += arr[9+i];
+    }
+    memcpy(chainCode, arr+13, 32);
+    uint8_t secret[32];
+    memcpy(secret, arr+46, 32);
+    privateKey = PrivateKey(secret, true, testnet);
 }
 HDPrivateKey::~HDPrivateKey(void) {
     // erase chain code from memory
@@ -483,15 +520,12 @@ int HDPrivateKey::fromMnemonic(char mnemonic[], char password[], bool use_testne
 bool HDPrivateKey::isValid(){
     return privateKey.isValid();
 }
-String HDPrivateKey::xprv(){
-    char result[120] = { 0 };
+int HDPrivateKey::xprv(char arr[], size_t len){
     uint8_t hex[78] = { 0 };
     if(privateKey.testnet){
-        uint8_t prefix[] = { 0x04, 0x35, 0x83, 0x94};
-        memcpy(hex, prefix, 4);
+        memcpy(hex, XPRV_TESTNET_PREFIX, 4);
     }else{
-        uint8_t prefix[] = { 0x04, 0x88, 0xAD, 0xE4};
-        memcpy(hex, prefix, 4);
+        memcpy(hex, XPRV_MAINNET_PREFIX, 4);
     }
     hex[4] = depth;
     memcpy(hex+5, fingerprint, 4);
@@ -500,18 +534,19 @@ String HDPrivateKey::xprv(){
     }
     memcpy(hex+13, chainCode, 32);
     memcpy(hex+46, privateKey.secret, 32);
-    size_t l = toBase58Check(hex, sizeof(hex), result, sizeof(result));
-    return String(result);
+    return toBase58Check(hex, sizeof(hex), arr, len);
 }
-String HDPrivateKey::xpub(){
-    char result[180] = { 0 };
-    uint8_t hex[111] = { 0 };
+String HDPrivateKey::xprv(){
+    char arr[112] = { 0 };
+    xprv(arr, sizeof(arr));
+    return String(arr);
+}
+int HDPrivateKey::xpub(char arr[], size_t len){
+    uint8_t hex[111] = { 0 }; // TODO: real length, in xpub compressed = true
     if(privateKey.testnet){
-        uint8_t prefix[] = { 0x04, 0x35, 0x87, 0xCF};
-        memcpy(hex, prefix, 4);
+        memcpy(hex, XPUB_TESTNET_PREFIX, 4);
     }else{
-        uint8_t prefix[] = { 0x04, 0x88, 0xB2, 0x1E};
-        memcpy(hex, prefix, 4);
+        memcpy(hex, XPUB_MAINNET_PREFIX, 4);
     }
     hex[4] = depth;
     memcpy(hex+5, fingerprint, 4);
@@ -523,8 +558,12 @@ String HDPrivateKey::xpub(){
     uint8_t sec[65] = { 0 };
     int secLen = privateKey.publicKey().sec(sec, sizeof(sec));
     memcpy(hex+45, sec, secLen);
-    size_t l = toBase58Check(hex, 45+secLen, result, sizeof(result));
-    return String(result);
+    return toBase58Check(hex, 45+secLen, arr, len);
+}
+String HDPrivateKey::xpub(){
+    char arr[112] = { 0 };
+    xpub(arr, sizeof(arr));
+    return String(arr);
 }
 // TODO: refactor to single function!
 HDPrivateKey HDPrivateKey::child(uint32_t index){
@@ -582,7 +621,7 @@ HDPrivateKey HDPrivateKey::child(uint32_t index){
         }
     }
     if(gtn == true){
-        // remove minusN, make (0xFF-N[i]) instead
+        // TODO: remove minusN, make (0xFF-N[i]) instead
         uint8_t minusN[] = {
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 
@@ -657,7 +696,7 @@ HDPrivateKey HDPrivateKey::hardenedChild(uint32_t index){
         }
     }
     if(gtn == true){
-        // remove minusN, make (0xFF-N[i]) instead
+        // TODO: remove minusN, make (0xFF-N[i]) instead
         uint8_t minusN[] = {
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 
