@@ -1,0 +1,59 @@
+#######################################
+# Syntax Coloring Map
+#######################################
+
+#######################################
+# Hash.h Methods and Functions (KEYWORD2)
+#######################################
+
+rmd160	KEYWORD2
+sha256	KEYWORD2
+hash160	KEYWORD2
+doubleSha	KEYWORD2
+sha512	KEYWORD2
+sha512Hmac	KEYWORD2
+
+#######################################
+# Datatypes and classes (KEYWORD1)
+#######################################
+
+Bitcoin	KEYWORD1
+Hash	KEYWORD1
+BaseX	KEYWORD1
+
+Scalar	KEYWORD1
+Point	KEYWORD1
+PrivateKey	KEYWORD1
+PublicKey	KEYWORD1
+HDPrivateKey	KEYWORD1
+HDPublicKey	KEYWORD1
+Signature	KEYWORD1
+Transaction	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+pow	KEYWORD2
+sign	KEYWORD2
+fromSeed	KEYWORD2
+fromMnemonic	KEYWORD2
+xpub	KEYWORD2
+xprv	KEYWORD2
+child	KEYWORD2
+hardenedChild	KEYWORD2
+address	KEYWORD2
+segwitAddress	KEYWORD2
+nestedSegwitAddress	KEYWORD2
+parse	KEYWORD2
+fromWIF	KEYWORD2
+publicKey	KEYWORD2
+sec	KEYWORD2
+fromHex	KEYWORD2
+toHex	KEYWORD2
+
+######################################
+# Constants (LITERAL1)
+#######################################
+
+PRIME	LITERAL1
