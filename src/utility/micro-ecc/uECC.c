@@ -1458,6 +1458,46 @@ static bitcount_t smax(bitcount_t a, bitcount_t b) {
     return (a > b ? a : b);
 }
 
+// calculates p3 = p1 + p2
+int uECC_add_points(const uint8_t *p1, const uint8_t *p2, uint8_t *p3, uECC_Curve curve){
+    wordcount_t num_words = curve->num_words;
+    uECC_word_t z[uECC_MAX_WORDS];
+    uECC_word_t sum[uECC_MAX_WORDS * 2];
+    uECC_word_t tx[uECC_MAX_WORDS];
+    uECC_word_t ty[uECC_MAX_WORDS];
+    uECC_word_t tz[uECC_MAX_WORDS];
+#if uECC_VLI_NATIVE_LITTLE_ENDIAN
+    uECC_word_t *_p1 = (uECC_word_t *)p1;
+    uECC_word_t *_p2 = (uECC_word_t *)p2;
+#else
+    uECC_word_t _p1[uECC_MAX_WORDS * 2];
+    uECC_word_t _p2[uECC_MAX_WORDS * 2];
+    uECC_vli_bytesToNative(_p1, p1, curve->num_bytes);
+    uECC_vli_bytesToNative(
+        _p1 + num_words, p1 + curve->num_bytes, curve->num_bytes);
+    uECC_vli_bytesToNative(_p2, p2, curve->num_bytes);
+    uECC_vli_bytesToNative(
+        _p2 + num_words, p2 + curve->num_bytes, curve->num_bytes);
+#endif
+
+    /* Calculate sum = G + Q. */
+    uECC_vli_set(sum, _p1, num_words);
+    uECC_vli_set(sum + num_words, _p1 + num_words, num_words);
+    uECC_vli_set(tx, _p2, num_words);
+    uECC_vli_set(ty, _p2 + num_words, num_words);
+    uECC_vli_modSub(z, sum, tx, curve->p, num_words); /* z = x2 - x1 */
+    XYcZ_add(tx, ty, sum, sum + num_words, curve);
+    uECC_vli_modInv(z, z, curve->p, num_words); /* z = 1/z */
+    apply_z(sum, sum + num_words, z, curve);
+#if uECC_VLI_NATIVE_LITTLE_ENDIAN
+    memcpy(p3, sum, 64);
+#else
+    uECC_vli_nativeToBytes(p3, BITS_TO_BYTES(curve->num_n_bits), sum);
+    uECC_vli_nativeToBytes(p3+32, BITS_TO_BYTES(curve->num_n_bits), sum+num_words);
+#endif
+    return 0;
+}
+
 int uECC_verify(const uint8_t *public_key,
                 const uint8_t *message_hash,
                 unsigned hash_size,

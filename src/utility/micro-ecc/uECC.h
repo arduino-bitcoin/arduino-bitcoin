@@ -338,6 +338,20 @@ int uECC_sign_deterministic(const uint8_t *private_key,
                             uint8_t *signature,
                             uECC_Curve curve);
 
+/* uECC_add_points() function
+Calculates sum of two points on curve
+
+Inputs:
+    p1          - first point
+    p2          - second point
+
+Outputs:
+    p3          - will be filled with result of p1 + p2
+
+Returns 1 if calcualted successfully, 0 if an error occurred
+*/
+int uECC_add_points(const uint8_t *p1, const uint8_t *p2, uint8_t *p3, uECC_Curve curve);
+
 /* uECC_verify() function.
 Verify an ECDSA signature.
 

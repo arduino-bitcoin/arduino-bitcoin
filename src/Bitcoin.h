@@ -52,17 +52,18 @@ class Signature{
     Testnet flag should be set if you want to use bitcoin testnet, not mainnet.
  */
 class PublicKey{
-        byte point[64];  // point on curve (x,y)
     public:
+        byte point[64];  // point on curve (x,y)
         bool compressed;
         bool testnet;
 
         PublicKey();
         PublicKey(byte pubkeyArr[64], bool use_compressed, bool use_testnet = false);
         PublicKey(byte secArr[], bool use_testnet = false);
-        PublicKey(char secHex[], bool use_testnet = false);
+        PublicKey(char secHex[], bool use_testnet = false); // fromHex method will be better
         int sec(byte sec[], size_t len);
         String sec();
+        int fromSec(byte secArr[], bool use_testnet = false);
         int address(char * address, size_t len);
         String address();
         int segwitAddress(char * address, size_t len);
@@ -155,7 +156,30 @@ class HDPrivateKey{
         operator String(){ return xprv(); };
 };
 
-// TODO: implement HDPublicKey class
+class HDPublicKey{
+    public:
+        HDPublicKey();
+        HDPublicKey(uint8_t point[64], uint8_t chain_code[32], 
+                     uint8_t key_depth = 0,
+                     uint8_t fingerprint_arr[4] = NULL,
+                     uint32_t childnumber = 0,
+                     bool use_testnet = false);
+        HDPublicKey(char xpubArr[]);
+        ~HDPublicKey();
+
+        PublicKey publicKey;
+        uint8_t chainCode[32];
+        uint8_t depth;
+        uint8_t fingerprint[4];
+        uint32_t childNumber;
+
+        int xpub(char arr[], size_t len);
+        String xpub();
+
+        HDPublicKey child(uint32_t index);
+        bool isValid();
+        operator String(){ return xpub(); };
+};
 
 // TODO: implement Script class
 

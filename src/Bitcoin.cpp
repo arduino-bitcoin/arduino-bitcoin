@@ -152,7 +152,6 @@ PublicKey::PublicKey(char secHex[], bool use_testnet){
         uECC_decompress(secArr, point, curve);
     }
 }
-
 int PublicKey::sec(uint8_t * sec, size_t len){
     // TODO: check length
     memset(sec, 0, len);
@@ -171,7 +170,19 @@ String PublicKey::sec(){
     int len = sec(sec_arr, sizeof(sec_arr));
     return toHex(sec_arr, len);
 }
-
+int PublicKey::fromSec(byte secArr[], bool use_testnet){
+    testnet = use_testnet;
+    memset(point, 0, 64);
+    if(secArr[0]==0x04){
+        compressed = false;
+        memcpy(point, secArr+1, 64);
+    }else{
+        compressed = true;
+        const struct uECC_Curve_t * curve = uECC_secp256k1();
+        uECC_decompress(secArr, point, curve);
+    }
+    return 1;
+}
 int PublicKey::address(char * address, size_t len){
     memset(address, 0, len);
 
@@ -456,6 +467,9 @@ HDPrivateKey::HDPrivateKey(char xprvArr[]){
     size_t xprvLen = strlen(xprvArr);
     byte arr[85] = { 0 };
     size_t l = fromBase58Check(xprvArr, xprvLen, arr, sizeof(arr));
+    if(l == 0){
+        return; // decoding error
+    }
     if( (memcmp(arr, XPRV_MAINNET_PREFIX, 4)!=0) && (memcmp(arr, XPRV_TESTNET_PREFIX, 4)!=0) ){
         // unknown format. TODO: implement yprv, zprv etc
         return;
@@ -639,6 +653,7 @@ HDPrivateKey HDPrivateKey::child(uint32_t index){
     memset(res, 0, 32);
     return child;
 }
+
 HDPrivateKey HDPrivateKey::hardenedChild(uint32_t index){
     // TODO: refactor, the same used in two functions
     HDPrivateKey child;
@@ -715,3 +730,124 @@ HDPrivateKey HDPrivateKey::hardenedChild(uint32_t index){
     return child;
 }
 
+// ---------------------------------------------------------------- HDPublicKey class
+
+HDPublicKey::HDPublicKey(void){
+    publicKey.compressed = true;
+    memset(chainCode, 0, 32);
+    depth = 0;
+    memset(fingerprint, 0, 4);
+    childNumber = 0;
+}
+HDPublicKey::HDPublicKey(uint8_t point[64],
+                           uint8_t chain_code[32],
+                           uint8_t key_depth,
+                           uint8_t fingerprint_arr[4],
+                           uint32_t child_number,
+                           bool use_testnet){
+
+    publicKey = PublicKey(point, true, use_testnet);
+    memcpy(chainCode, chain_code, 32);
+    depth = key_depth;
+    childNumber = child_number;
+    if(fingerprint_arr != NULL){
+        memcpy(fingerprint, fingerprint_arr, 4);
+    }else{
+        memset(fingerprint, 0, 4);
+    }
+}
+HDPublicKey::HDPublicKey(char xpubArr[]){
+    size_t xpubLen = strlen(xpubArr);
+    byte arr[85] = { 0 };
+    size_t l = fromBase58Check(xpubArr, xpubLen, arr, sizeof(arr));
+    if(l == 0){
+        return; // decoding error
+    }
+    if( (memcmp(arr, XPUB_MAINNET_PREFIX, 4)!=0) && (memcmp(arr, XPUB_TESTNET_PREFIX, 4)!=0) ){
+        // unknown format. TODO: implement ypub, zpub etc
+        return;
+    }
+    bool testnet = false;
+    if(memcmp(arr, XPUB_TESTNET_PREFIX, 4)==0){
+        testnet = true;
+    }
+    depth = arr[4];
+    memcpy(fingerprint, arr+5, 4);
+    childNumber = 0;
+    for(int i=0; i<4; i++){
+        childNumber <<= 8;
+        childNumber += arr[9+i];
+    }
+    memcpy(chainCode, arr+13, 32);
+    byte sec_arr[33];
+    memcpy(sec_arr, arr+45, 33);
+    publicKey.fromSec(sec_arr, testnet);
+}
+HDPublicKey::~HDPublicKey(void) {
+    // erase chain code from memory
+    memset(chainCode, 0, 32);
+}
+bool HDPublicKey::isValid(){
+    return publicKey.isValid();
+}
+int HDPublicKey::xpub(char arr[], size_t len){
+    uint8_t hex[111] = { 0 }; // TODO: real length, in xpub compressed = true
+    if(publicKey.testnet){
+        memcpy(hex, XPUB_TESTNET_PREFIX, 4);
+    }else{
+        memcpy(hex, XPUB_MAINNET_PREFIX, 4);
+    }
+    hex[4] = depth;
+    memcpy(hex+5, fingerprint, 4);
+    for(uint8_t i=0; i<4; i++){
+        hex[12-i] = ((childNumber >> (i*8)) & 0xFF);
+    }
+    memcpy(hex+13, chainCode, 32);
+
+    uint8_t sec[65] = { 0 };
+    int secLen = publicKey.sec(sec, sizeof(sec));
+    memcpy(hex+45, sec, secLen);
+    return toBase58Check(hex, 45+secLen, arr, len);
+}
+String HDPublicKey::xpub(){
+    char arr[114] = { 0 };
+    xpub(arr, sizeof(arr));
+    return String(arr);
+}
+HDPublicKey HDPublicKey::child(uint32_t index){
+    HDPublicKey child;
+
+    uint8_t sec[65] = { 0 };
+    int l = publicKey.sec(sec, sizeof(sec));
+    uint8_t hash[20] = { 0 };
+    hash160(sec, l, hash);
+    memcpy(child.fingerprint, hash, 4);
+    child.childNumber = index;
+    child.depth = depth+1;
+
+    uint8_t data[69];
+    memcpy(data, sec, l);
+    for(uint8_t i=0; i<4; i++){
+        data[l+3-i] = ((index >> (i*8)) & 0xFF);
+    }
+
+    uint8_t raw[64];
+    SHA512 sha;
+    sha.resetHMAC(chainCode, sizeof(chainCode));
+    sha.update(data, l+4);
+    sha.finalizeHMAC(chainCode, sizeof(chainCode), raw, sizeof(raw));
+
+    memcpy(child.chainCode, raw+32, 32);
+
+    uint8_t secret[32];
+    memcpy(secret, raw, 32);
+    const struct uECC_Curve_t * curve = uECC_secp256k1();
+    uint8_t p[64] = {0};
+    uECC_compute_public_key(secret, p, curve);
+
+    uint8_t point[64] = { 0 };
+    uECC_add_points(p, publicKey.point, point, curve);
+
+    child.publicKey = PublicKey(point, true, publicKey.testnet);
+    return child;
+}
