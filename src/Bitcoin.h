@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "BaseX.h"
+#include "Script.h"
 
 /*
     Constants.
