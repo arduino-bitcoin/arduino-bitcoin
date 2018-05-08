@@ -1,5 +1,5 @@
-#ifndef __SCRIPT_H__R3NU8EN25O
-#define __SCRIPT_H__R3NU8EN25O
+#ifndef __OPCODES_H__R3NU8EN25O
+#define __OPCODES_H__R3NU8EN25O
 
 // reference: https://en.bitcoin.it/wiki/Script#Opcodes
 
@@ -170,4 +170,4 @@
 #define OP_PUBKEY 				254
 #define OP_INVALIDOPCODE 		255
 
-#endif /* __SCRIPT_H__R3NU8EN25O */
+#endif /* __OPCODES_H__R3NU8EN25O */

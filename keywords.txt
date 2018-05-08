@@ -27,6 +27,7 @@ PrivateKey	KEYWORD1
 PublicKey	KEYWORD1
 HDPrivateKey	KEYWORD1
 HDPublicKey	KEYWORD1
+Script	KEYWORD1
 Signature	KEYWORD1
 Transaction	KEYWORD1
 

@@ -30,4 +30,10 @@ size_t fromHex(const char hex[], size_t hexLen, byte array[], size_t arraySize);
 
 uint8_t hexToVal(char c);
 
+/* int conversion */
+uint64_t littleEndianToInt(byte array[], size_t arraySize);
+void intToLittleEndian(uint64_t num, byte array[], size_t arraySize);
+uint64_t bigEndianToInt(byte array[], size_t arraySize);
+void intToBigEndian(uint64_t num, byte array[], size_t arraySize);
+
 #endif // BASEX_H_6LV8N942E3

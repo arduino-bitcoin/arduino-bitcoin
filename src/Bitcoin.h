@@ -11,8 +11,8 @@
 #include <Arduino.h>
 #include <stdint.h>
 #include <string.h>
-#include "BaseX.h"
-#include "Script.h"
+#include "Conversion.h"
+#include "OpCodes.h"
 
 /*
     Constants.
@@ -125,7 +125,8 @@ class PrivateKey{
 };
 
 /*
-    HD Private Key class
+    HD Private Key class.
+    Classes are defined in HDWallet.cpp
 */
 class HDPrivateKey{
     public:
@@ -185,25 +186,64 @@ class HDPublicKey{
 // TODO: implement Script class
 
 /*
-    Transaction class
-    TODO: refactor! it's literally crap!
+    Transaction classes.
+    Classes are defined in Transaction.cpp file.
+    TODO: handle large transactions and invalid inputs somehow...
 */
 
-class Transaction{
-    public:
-        Transaction();
-        ~Transaction();
+class TransactionInput{
+public:
+    TransactionInput();
+    TransactionInput(TransactionInput const &other);
+    ~TransactionInput();
+    uint8_t hash[32];
+    uint32_t outputIndex;
+    uint8_t * script = NULL;
+    uint8_t scriptLen = 0;
+    uint32_t sequence;
 
-        uint8_t * raw_data;
-        size_t len;
-        int parse(char raw[]);
-        int parse(char raw[], size_t l);
-        uint8_t inputsNumber;
-        uint8_t outputsNumber;
-        String outputAddress(int outputNumber, bool testnet=false);
-        float outputValue(int outputNumber);
-        String sign(HDPrivateKey key);
-        int getHash(int index, PublicKey pubkey, uint8_t hash[32]);
+    size_t parse(byte raw[], size_t l);
+
+    TransactionInput &operator=(TransactionInput const &other);
+};
+
+class TransactionOutput{
+public:
+    TransactionOutput();
+    TransactionOutput(TransactionOutput const &other);
+    ~TransactionOutput();
+
+    uint64_t amount = 0;
+    uint8_t * script = NULL;
+    uint8_t scriptLen = 0;
+
+    size_t parse(byte raw[], size_t l);
+    String address(bool testnet=false);
+
+    TransactionOutput &operator=(TransactionOutput const &other);
+};
+
+class Transaction{
+public:
+    Transaction();
+    ~Transaction();
+
+    uint32_t version = 1;
+    TransactionInput * txIns = NULL;
+    TransactionOutput * txOuts = NULL;
+    uint32_t locktime = 0;
+
+    // uint8_t * raw_data;
+    size_t len;
+    size_t parse(byte raw[]);
+    size_t parse(byte raw[], size_t l);
+    uint8_t inputsNumber;
+    uint8_t outputsNumber;
+    // String outputAddress(int outputNumber, bool testnet=false);
+    // float outputValue(int outputNumber);
+    // String sign(HDPrivateKey key);
+    // int getHash(int index, PublicKey pubkey, uint8_t hash[32]);
+    // TODO: copy()
 };
 
 #endif /* __BITCOIN_H__BDDNDVJ300 */

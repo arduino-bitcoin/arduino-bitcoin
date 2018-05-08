@@ -1,4 +1,4 @@
-#include "BaseX.h"
+#include "Conversion.h"
 #include "Hash.h"
 #include <string.h>
 #include <stdlib.h>
@@ -257,3 +257,34 @@ size_t fromBase58Check(const char * encoded, size_t encodedSize, uint8_t * outpu
     return l-4;
 }
 
+/* Integer conversion */
+
+uint64_t littleEndianToInt(byte array[], size_t arraySize){
+    uint64_t num = 0;
+    for(int i = 0; i < arraySize; i++){
+        num <<= 8;
+        num += (array[arraySize-i-1] & 0xFF);
+    }
+    return num;
+}
+
+void intToLittleEndian(uint64_t num, byte array[], size_t arraySize){
+    for(int i = 0; i < arraySize; i++){
+        array[i] = ((num >> (8*i)) & 0xFF);
+    }
+}
+
+uint64_t bigEndianToInt(byte array[], size_t arraySize){
+    uint64_t num = 0;
+    for(int i = 0; i < arraySize; i++){
+        num <<= 8;
+        num += (array[i] & 0xFF);
+    }
+    return num;
+}
+
+void intToBigEndian(uint64_t num, byte array[], size_t arraySize){
+    for(int i = 0; i < arraySize; i++){
+        array[arraySize-i-1] = ((num >> (8*i)) & 0xFF);
+    }
+}
