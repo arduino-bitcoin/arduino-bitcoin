@@ -11,117 +11,151 @@ TransactionInput::TransactionInput(TransactionInput const &other){
     memcpy(hash, other.hash, 32);
     outputIndex = other.outputIndex;
     sequence = other.sequence;
-    scriptLen = other.scriptLen;
-    script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
-    memcpy(script, other.script, scriptLen);
+    if(other.scriptSigLen > 0){
+        scriptSigLen = other.scriptSigLen;
+        scriptSig = (uint8_t *) calloc( scriptSigLen, sizeof(uint8_t));
+        memcpy(scriptSig, other.scriptSig, scriptSigLen);
+    }
+    if(other.scriptPubKeyLen > 0){
+        scriptPubKeyLen = other.scriptPubKeyLen;
+        scriptPubKey = (uint8_t *) calloc( scriptPubKeyLen, sizeof(uint8_t));
+        memcpy(scriptPubKey, other.scriptPubKey, scriptPubKeyLen);
+    }
+    amount = other.amount;
 }
 TransactionInput::~TransactionInput(void){
-    if(scriptLen > 0){
-        free(script);
+    if(scriptSigLen > 0){
+        free(scriptSig);
+    }
+    if(scriptPubKeyLen > 0){
+        free(scriptPubKey);
     }
 }
 TransactionInput &TransactionInput::operator=(TransactionInput const &other){ 
-    free(script);
+    if(scriptSigLen > 0){
+        free(scriptSig);
+        scriptSigLen = 0;
+    }
+    if(scriptPubKeyLen > 0){
+        free(scriptPubKey);
+        scriptPubKeyLen = 0;
+    }
     memcpy(hash, other.hash, 32);
     outputIndex = other.outputIndex;
     sequence = other.sequence;
-    scriptLen = other.scriptLen;
-    script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
-    memcpy(script, other.script, scriptLen);
-    return *this; 
-};
-size_t TransactionInput::parse(byte raw[], size_t len){
-    size_t cursor = 0;
-    memcpy(hash, raw, 32);
-    cursor += 32; // hash
-
-    outputIndex = littleEndianToInt(raw+cursor, 4);    
-    cursor += 4; // output index
-
-    if(scriptLen > 0){
-        free(script);
+    if(other.scriptSigLen > 0){
+        scriptSigLen = other.scriptSigLen;
+        scriptSig = (uint8_t *) calloc( scriptSigLen, sizeof(uint8_t));
+        memcpy(scriptSig, other.scriptSig, scriptSigLen);
     }
-    // TODO: varint!!!
-    scriptLen = raw[cursor];
-    cursor ++;
-    if(cursor+scriptLen > len){
+    if(other.scriptPubKeyLen > 0){
+        scriptPubKeyLen = other.scriptPubKeyLen;
+        scriptPubKey = (uint8_t *) calloc( scriptPubKeyLen, sizeof(uint8_t));
+        memcpy(scriptPubKey, other.scriptPubKey, scriptPubKeyLen);
+    }
+    amount = other.amount;
+    return *this;
+};
+size_t TransactionInput::parse(Stream &s){
+    size_t len = 0;
+    len += s.readBytes(hash, 32);
+    uint8_t arr[4];
+    len += s.readBytes(arr, 4);
+    outputIndex = littleEndianToInt(arr, 4);
+    if(scriptSigLen > 0){
+        free(scriptSig);
+    }
+    // check if I can get script len (not with available() because of timeout)
+    int l = s.peek();
+    if(l < 0){
         return 0;
     }
-
-    script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
-    memcpy(script, raw+cursor, scriptLen);
-    cursor += scriptLen;
-
-    sequence = littleEndianToInt(raw+cursor, 4);
-    cursor += 4;
-
-    return cursor;
+    // TODO: varint!!!
+    scriptSigLen = s.read();
+    len ++;
+    scriptSig = (uint8_t *) calloc( scriptSigLen, sizeof(uint8_t));
+    len += s.readBytes(scriptSig, scriptSigLen);
+    len += s.readBytes(arr, 4);
+    sequence = littleEndianToInt(arr, 4);
+    if(len != 32+4+1+scriptSigLen+4){
+        return 0;
+    }
+    return len;
+}
+size_t TransactionInput::parse(byte raw[], size_t len){
+    ByteStream s(raw, len);
+    return parse(s);
 }
 
 TransactionOutput::TransactionOutput(void){}
 TransactionOutput::TransactionOutput(TransactionOutput const &other){
     amount = other.amount;
-    scriptLen = other.scriptLen;
-    script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
-    memcpy(script, other.script, scriptLen);
+    scriptPubKeyLen = other.scriptPubKeyLen;
+    scriptPubKey = (uint8_t *) calloc( scriptPubKeyLen, sizeof(uint8_t));
+    memcpy(scriptPubKey, other.scriptPubKey, scriptPubKeyLen);
 }
 TransactionOutput::~TransactionOutput(void){}
 
-size_t TransactionOutput::parse(byte raw[], size_t len){
-    size_t cursor = 0;
-
-    amount = littleEndianToInt(raw+cursor, 8);
-    cursor += 8; // amount
+size_t TransactionOutput::parse(Stream &s){
+    size_t len = 0;
+    uint8_t arr[8];
+    len += s.readBytes(arr, 8);
+    amount = littleEndianToInt(arr, 8);
 
     // TODO: varint!!!
-    if(scriptLen > 0){
-        free(script);
+    if(scriptPubKeyLen > 0){
+        free(scriptPubKey);
     }
-    scriptLen = raw[cursor];
-    cursor ++;
-    if(cursor+scriptLen > len){
+    // check if I can get script len (not with available() because of timeout)
+    int l = s.peek(); 
+    if(l < 0){
         return 0;
     }
-
-    script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
-    memcpy(script, raw+cursor, scriptLen);
-    cursor += scriptLen;
-
-    return cursor;
+    scriptPubKeyLen = s.read();
+    len ++;
+    scriptPubKey = (uint8_t *) calloc( scriptPubKeyLen, sizeof(uint8_t));
+    len += s.readBytes(scriptPubKey, scriptPubKeyLen);
+    if(len != 8+1+scriptPubKeyLen){
+        return 0;
+    }
+    return len;
+}
+size_t TransactionOutput::parse(byte raw[], size_t len){
+    ByteStream s(raw, len);
+    return parse(s);
 }
 String TransactionOutput::address(bool testnet){
-    if(scriptLen == 25){
+    if(scriptPubKeyLen == 25){
         uint8_t addr[21];
         if(testnet){
             addr[0] = BITCOIN_TESTNET_P2PKH;
         }else{
             addr[0] = BITCOIN_MAINNET_P2PKH;
         }
-        memcpy(addr+1, script + 3, 20);
+        memcpy(addr+1, scriptPubKey + 3, 20);
         char address[40] = { 0 };
         toBase58Check(addr, 21, address, sizeof(address));
         return String(address);
     }else{
-        return String("Unsupported: ")+toHex(script, scriptLen);
+        return String("Unsupported: ")+toHex(scriptPubKey, scriptPubKeyLen);
     }
 }
 
 TransactionOutput &TransactionOutput::operator=(TransactionOutput const &other){ 
-    free(script);
+    free(scriptPubKey);
     amount = other.amount;
-    scriptLen = other.scriptLen;
-    script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
-    memcpy(script, other.script, scriptLen);
+    scriptPubKeyLen = other.scriptPubKeyLen;
+    scriptPubKey = (uint8_t *) calloc( scriptPubKeyLen, sizeof(uint8_t));
+    memcpy(scriptPubKey, other.scriptPubKey, scriptPubKeyLen);
     return *this; 
 };
 
 // TODO: copy constructor, = operator
 Transaction::Transaction(void){
-    len = 0;
     inputsNumber = 0;
     outputsNumber = 0;
 }
-Transaction::~Transaction(void) {
+Transaction::~Transaction(void){
     if(inputsNumber > 0){
         free(txIns);
     }
@@ -129,65 +163,133 @@ Transaction::~Transaction(void) {
         free(txOuts);
     }
 }
-size_t Transaction::parse(byte raw[]){
-    // parse(raw, strlen(raw));
-}
-size_t Transaction::parse(byte raw[], size_t l){
+size_t Transaction::parse(Stream &s){
     if(inputsNumber > 0){
         free(txIns);
     }
     if(outputsNumber > 0){
         free(txOuts);
     }
-    len = l;
+    size_t len = 0;
+    size_t l;
+    uint8_t arr[4];
+    len += s.readBytes(arr, 4);
+    version = littleEndianToInt(arr, 4);
+    if(len != 4){
+        return 0;
+    }
 
-    // parsing
-    size_t cursor = 0;
-    version = littleEndianToInt(raw, 4);
-    cursor += 4;
-
-    // varint, but currently supporting only up to 253 inputs
-    inputsNumber = raw[cursor] & 0xFF;
+    // check if I can get script len (not with available() because of timeout)
+    l = s.peek();
+    if(l < 0){
+        return 0;
+    }
+    inputsNumber = s.read();
+    len++;
     if(inputsNumber >= 0xFD){
         return 0;
     }
-    if(txIns != NULL){
-        free(txIns);
-    }
     txIns = ( TransactionInput * )calloc( inputsNumber, sizeof(TransactionInput) );
-    cursor ++;
-
-    for(int i=0; i<inputsNumber; i++){
+    for(int i = 0; i < inputsNumber; i++){
         TransactionInput txIn;
-        cursor += txIn.parse(raw+cursor, len-cursor);
+        l = txIn.parse(s);
         txIns[i] = txIn;
-        if(cursor > len){
+        if(l == 0){
             return 0;
+        }else{
+            len += l;
         }
     }
 
-    outputsNumber = raw[cursor] & 0xFF;
+    l = s.peek();
+    if(l < 0){
+        return 0;
+    }
+    outputsNumber = s.read();
+    len++;
     if(outputsNumber >= 0xFD){
         return 0;
     }
-    if(txOuts != NULL){
-        free(txOuts);
-    }
     txOuts = ( TransactionOutput * )calloc( outputsNumber, sizeof(TransactionOutput) );
-    cursor ++;
-
-    for(int i=0; i<outputsNumber; i++){
+    for(int i = 0; i < outputsNumber; i++){
         TransactionOutput txOut;
-        cursor += txOut.parse(raw+cursor, len-cursor);
+        l = txOut.parse(s);
         txOuts[i] = txOut;
-        if(cursor > len){
+        if(l == 0){
             return 0;
+        }else{
+            len += l;
         }
     }
 
-    locktime = littleEndianToInt(raw+cursor, 4);
-    cursor += 4;
-    return cursor;
+    l = s.readBytes(arr, 4);
+    if(l != 4){
+        return 0;
+    }else{
+        len += l;
+    }
+    locktime = littleEndianToInt(arr, 4);
+    return len;
+}
+
+size_t Transaction::parse(byte raw[], size_t len){
+    ByteStream s(raw, len);
+    return parse(s);
+    // if(inputsNumber > 0){
+    //     free(txIns);
+    // }
+    // if(outputsNumber > 0){
+    //     free(txOuts);
+    // }
+    // len = l;
+
+    // // parsing
+    // size_t cursor = 0;
+    // version = littleEndianToInt(raw, 4);
+    // cursor += 4;
+
+    // // varint, but currently supporting only up to 253 inputs
+    // inputsNumber = raw[cursor] & 0xFF;
+    // if(inputsNumber >= 0xFD){
+    //     return 0;
+    // }
+    // if(txIns != NULL){
+    //     free(txIns);
+    // }
+    // txIns = ( TransactionInput * )calloc( inputsNumber, sizeof(TransactionInput) );
+    // cursor ++;
+
+    // for(int i=0; i<inputsNumber; i++){
+    //     TransactionInput txIn;
+    //     cursor += txIn.parse(raw+cursor, len-cursor);
+    //     txIns[i] = txIn;
+    //     if(cursor > len){
+    //         return 0;
+    //     }
+    // }
+
+    // outputsNumber = raw[cursor] & 0xFF;
+    // if(outputsNumber >= 0xFD){
+    //     return 0;
+    // }
+    // if(txOuts != NULL){
+    //     free(txOuts);
+    // }
+    // txOuts = ( TransactionOutput * )calloc( outputsNumber, sizeof(TransactionOutput) );
+    // cursor ++;
+
+    // for(int i=0; i<outputsNumber; i++){
+    //     TransactionOutput txOut;
+    //     cursor += txOut.parse(raw+cursor, len-cursor);
+    //     txOuts[i] = txOut;
+    //     if(cursor > len){
+    //         return 0;
+    //     }
+    // }
+
+    // locktime = littleEndianToInt(raw+cursor, 4);
+    // cursor += 4;
+    // return cursor;
 }
 
 // String Transaction::outputAddress(int outputNumber, bool testnet){

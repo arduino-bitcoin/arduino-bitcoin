@@ -198,10 +198,17 @@ public:
     ~TransactionInput();
     uint8_t hash[32];
     uint32_t outputIndex;
-    uint8_t * script = NULL;
-    uint8_t scriptLen = 0;
+    uint8_t * scriptSig = NULL;
+    size_t scriptSigLen = 0;
     uint32_t sequence;
 
+    // following information is optional, 
+    // can be obtained from spending output
+    uint8_t * scriptPubKey = NULL;
+    size_t scriptPubKeyLen = 0;
+    uint64_t amount = 0; // required for fee calculation
+
+    size_t parse(Stream &s);
     size_t parse(byte raw[], size_t l);
 
     TransactionInput &operator=(TransactionInput const &other);
@@ -214,9 +221,10 @@ public:
     ~TransactionOutput();
 
     uint64_t amount = 0;
-    uint8_t * script = NULL;
-    uint8_t scriptLen = 0;
+    uint8_t * scriptPubKey = NULL;
+    size_t scriptPubKeyLen = 0;
 
+    size_t parse(Stream &s);
     size_t parse(byte raw[], size_t l);
     String address(bool testnet=false);
 
@@ -234,13 +242,10 @@ public:
     uint32_t locktime = 0;
 
     // uint8_t * raw_data;
-    size_t len;
-    size_t parse(byte raw[]);
-    size_t parse(byte raw[], size_t l);
+    size_t parse(Stream &s);
+    size_t parse(byte raw[], size_t len);
     uint8_t inputsNumber;
     uint8_t outputsNumber;
-    // String outputAddress(int outputNumber, bool testnet=false);
-    // float outputValue(int outputNumber);
     // String sign(HDPrivateKey key);
     // int getHash(int index, PublicKey pubkey, uint8_t hash[32]);
     // TODO: copy()

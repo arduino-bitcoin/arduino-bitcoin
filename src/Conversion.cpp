@@ -288,3 +288,51 @@ void intToBigEndian(uint64_t num, byte array[], size_t arraySize){
         array[arraySize-i-1] = ((num >> (8*i)) & 0xFF);
     }
 }
+
+/* Stream conversion */
+ByteStream::ByteStream(uint8_t * buffer, size_t length){
+    len = length;
+    buf = (uint8_t *) calloc( length, sizeof(uint8_t));
+    memcpy(buf, buffer, length);
+}
+ByteStream::~ByteStream(void){
+    if(len > 0){
+        free(buf);
+    }
+}
+int ByteStream::available(){
+    return len-cursor;
+}
+void ByteStream::flush(){
+    return;
+}
+int ByteStream::peek(){
+    if(available()){
+        uint8_t c =  buf[cursor];
+        return c;
+    }else{
+        return -1;
+    }
+}
+int ByteStream::read(){
+    if(available()){
+        uint8_t c =  buf[cursor];
+        cursor++;
+        return c;
+    }else{
+        return -1;
+    }
+}
+size_t ByteStream::readBytes(uint8_t * buffer, size_t length){
+    size_t l;
+    if(available() < length){
+        length = available();
+    }
+    memcpy(buffer, buf+cursor, length);
+    cursor += length;
+    return length;
+}
+size_t ByteStream::write(uint8_t b){
+    return 1;
+}
+

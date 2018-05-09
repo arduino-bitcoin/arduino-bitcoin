@@ -36,4 +36,27 @@ void intToLittleEndian(uint64_t num, byte array[], size_t arraySize);
 uint64_t bigEndianToInt(byte array[], size_t arraySize);
 void intToBigEndian(uint64_t num, byte array[], size_t arraySize);
 
+/* Stream convertors */
+
+/* ByteStream class
+   Converts an array of bytes to stream of bytes.
+   Useful for transaction parsing.
+ */
+class ByteStream : public Stream{
+	size_t len = 0;
+	size_t cursor = 0;
+	uint8_t * buf = NULL;
+public:
+	ByteStream(uint8_t * buffer, size_t length);
+	~ByteStream();
+	int available();
+	int read();
+	int peek();
+	void flush();
+	size_t readBytes( uint8_t * buffer, size_t length);
+	size_t write(uint8_t);
+};
+
+
+
 #endif // BASEX_H_6LV8N942E3
