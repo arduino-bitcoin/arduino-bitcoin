@@ -12,7 +12,6 @@
 #include <stdint.h>
 #include <string.h>
 #include "Conversion.h"
-#include "OpCodes.h"
 
 /*
     Constants.
@@ -29,6 +28,13 @@
 #define BITCOIN_MAINNET_P2SH   0x05
 #define BITCOIN_TESTNET_P2SH   0xC4
 
+// TODO: think if we need P2PKH_COMPRESSED/UNCOMPRESSED
+#define P2PKH                  1
+#define P2SH                   2
+#define P2WPKH                 3
+#define P2WSH                  4
+#define P2SHWPKH               5 // TODO: how is it normally called?
+
 /*
     Signature class.
 */
@@ -43,6 +49,31 @@ class Signature{
         size_t der(uint8_t * bytes, size_t len);
         void bin(byte arr[64]); // 64-byte array <r[32]><s[32]>
         operator String();
+};
+
+/* 
+ *  Script class
+ */
+
+class Script{
+public:
+    // TODO: move to protected / private
+    uint8_t * script = NULL;
+    size_t length = 0;
+
+    Script();
+    Script(uint8_t * buffer, size_t len);
+    Script(Script const &other);
+    ~Script();
+    size_t parse(Stream &s);
+    int type();
+    String address(bool testnet = false);
+    // TODO: size_t serialize()
+
+    Script &operator=(Script const &other);
+    operator String();
+private:
+    void clear();
 };
 
 /*
@@ -73,6 +104,7 @@ class PublicKey{
         String nestedSegwitAddress();
         bool verify(Signature sig, byte hash[32]);
         bool isValid();
+        Script script(int type = P2PKH);
         operator String();
 };
 
@@ -183,52 +215,39 @@ class HDPublicKey{
         operator String(){ return xpub(); };
 };
 
-// TODO: implement Script class
-
 /*
-    Transaction classes.
-    Classes are defined in Transaction.cpp file.
-    TODO: handle large transactions and invalid inputs somehow...
-*/
+ *  Transaction classes.
+ *  Classes are defined in Transaction.cpp file.
+ *  TODO: handle large transactions and invalid inputs somehow...
+ */
 
 class TransactionInput{
 public:
     TransactionInput();
-    TransactionInput(TransactionInput const &other);
-    ~TransactionInput();
     uint8_t hash[32];
     uint32_t outputIndex;
-    uint8_t * scriptSig = NULL;
-    size_t scriptSigLen = 0;
+    Script scriptSig;
     uint32_t sequence;
 
     // following information is optional, 
     // can be obtained from spending output
-    uint8_t * scriptPubKey = NULL;
-    size_t scriptPubKeyLen = 0;
+    Script scriptPubKey;
     uint64_t amount = 0; // required for fee calculation
 
     size_t parse(Stream &s);
     size_t parse(byte raw[], size_t l);
-
-    TransactionInput &operator=(TransactionInput const &other);
 };
 
 class TransactionOutput{
 public:
     TransactionOutput();
-    TransactionOutput(TransactionOutput const &other);
-    ~TransactionOutput();
 
     uint64_t amount = 0;
-    uint8_t * scriptPubKey = NULL;
-    size_t scriptPubKeyLen = 0;
+    Script scriptPubKey;
 
     size_t parse(Stream &s);
     size_t parse(byte raw[], size_t l);
     String address(bool testnet=false);
-
-    TransactionOutput &operator=(TransactionOutput const &other);
 };
 
 class Transaction{
@@ -241,7 +260,6 @@ public:
     TransactionOutput * txOuts = NULL;
     uint32_t locktime = 0;
 
-    // uint8_t * raw_data;
     size_t parse(Stream &s);
     size_t parse(byte raw[], size_t len);
     uint8_t inputsNumber;
@@ -249,6 +267,7 @@ public:
     // String sign(HDPrivateKey key);
     // int getHash(int index, PublicKey pubkey, uint8_t hash[32]);
     // TODO: copy()
+    // TODO: sort() - bip69, Lexicographical Indexing of Transaction Inputs and Outputs
 };
 
 #endif /* __BITCOIN_H__BDDNDVJ300 */

@@ -7,77 +7,16 @@
 #include "utility/sha256.h"
 
 TransactionInput::TransactionInput(void){}
-TransactionInput::TransactionInput(TransactionInput const &other){
-    memcpy(hash, other.hash, 32);
-    outputIndex = other.outputIndex;
-    sequence = other.sequence;
-    if(other.scriptSigLen > 0){
-        scriptSigLen = other.scriptSigLen;
-        scriptSig = (uint8_t *) calloc( scriptSigLen, sizeof(uint8_t));
-        memcpy(scriptSig, other.scriptSig, scriptSigLen);
-    }
-    if(other.scriptPubKeyLen > 0){
-        scriptPubKeyLen = other.scriptPubKeyLen;
-        scriptPubKey = (uint8_t *) calloc( scriptPubKeyLen, sizeof(uint8_t));
-        memcpy(scriptPubKey, other.scriptPubKey, scriptPubKeyLen);
-    }
-    amount = other.amount;
-}
-TransactionInput::~TransactionInput(void){
-    if(scriptSigLen > 0){
-        free(scriptSig);
-    }
-    if(scriptPubKeyLen > 0){
-        free(scriptPubKey);
-    }
-}
-TransactionInput &TransactionInput::operator=(TransactionInput const &other){ 
-    if(scriptSigLen > 0){
-        free(scriptSig);
-        scriptSigLen = 0;
-    }
-    if(scriptPubKeyLen > 0){
-        free(scriptPubKey);
-        scriptPubKeyLen = 0;
-    }
-    memcpy(hash, other.hash, 32);
-    outputIndex = other.outputIndex;
-    sequence = other.sequence;
-    if(other.scriptSigLen > 0){
-        scriptSigLen = other.scriptSigLen;
-        scriptSig = (uint8_t *) calloc( scriptSigLen, sizeof(uint8_t));
-        memcpy(scriptSig, other.scriptSig, scriptSigLen);
-    }
-    if(other.scriptPubKeyLen > 0){
-        scriptPubKeyLen = other.scriptPubKeyLen;
-        scriptPubKey = (uint8_t *) calloc( scriptPubKeyLen, sizeof(uint8_t));
-        memcpy(scriptPubKey, other.scriptPubKey, scriptPubKeyLen);
-    }
-    amount = other.amount;
-    return *this;
-};
 size_t TransactionInput::parse(Stream &s){
     size_t len = 0;
     len += s.readBytes(hash, 32);
     uint8_t arr[4];
     len += s.readBytes(arr, 4);
     outputIndex = littleEndianToInt(arr, 4);
-    if(scriptSigLen > 0){
-        free(scriptSig);
-    }
-    // check if I can get script len (not with available() because of timeout)
-    int l = s.peek();
-    if(l < 0){
-        return 0;
-    }
-    // TODO: varint!!!
-    scriptSigLen = s.read();
-    len ++;
-    scriptSig = (uint8_t *) calloc( scriptSigLen, sizeof(uint8_t));
-    len += s.readBytes(scriptSig, scriptSigLen);
+    len += scriptSig.parse(s);
     len += s.readBytes(arr, 4);
     sequence = littleEndianToInt(arr, 4);
-    if(len != 32+4+1+scriptSigLen+4){
+    if((len != 32+4+1+scriptSig.length+4) || (scriptSig.length == 0)){
         return 0;
     }
     return len;
@@ -88,34 +27,13 @@ size_t TransactionInput::parse(byte raw[], size_t len){
 }
 
 TransactionOutput::TransactionOutput(void){}
-TransactionOutput::TransactionOutput(TransactionOutput const &other){
-    amount = other.amount;
-    scriptPubKeyLen = other.scriptPubKeyLen;
-    scriptPubKey = (uint8_t *) calloc( scriptPubKeyLen, sizeof(uint8_t));
-    memcpy(scriptPubKey, other.scriptPubKey, scriptPubKeyLen);
-}
-TransactionOutput::~TransactionOutput(void){}
-
 size_t TransactionOutput::parse(Stream &s){
     size_t len = 0;
     uint8_t arr[8];
     len += s.readBytes(arr, 8);
     amount = littleEndianToInt(arr, 8);
-
-    // TODO: varint!!!
-    if(scriptPubKeyLen > 0){
-        free(scriptPubKey);
-    }
-    // check if I can get script len (not with available() because of timeout)
-    int l = s.peek(); 
-    if(l < 0){
-        return 0;
-    }
-    scriptPubKeyLen = s.read();
-    len ++;
-    scriptPubKey = (uint8_t *) calloc( scriptPubKeyLen, sizeof(uint8_t));
-    len += s.readBytes(scriptPubKey, scriptPubKeyLen);
-    if(len != 8+1+scriptPubKeyLen){
+    len += scriptPubKey.parse(s);
+    if((len != 8+1+scriptPubKey.length) || (scriptPubKey.length == 0)){
         return 0;
     }
     return len;
@@ -125,30 +43,8 @@ size_t TransactionOutput::parse(byte raw[], size_t len){
     return parse(s);
 }
 String TransactionOutput::address(bool testnet){
-    if(scriptPubKeyLen == 25){
-        uint8_t addr[21];
-        if(testnet){
-            addr[0] = BITCOIN_TESTNET_P2PKH;
-        }else{
-            addr[0] = BITCOIN_MAINNET_P2PKH;
-        }
-        memcpy(addr+1, scriptPubKey + 3, 20);
-        char address[40] = { 0 };
-        toBase58Check(addr, 21, address, sizeof(address));
-        return String(address);
-    }else{
-        return String("Unsupported: ")+toHex(scriptPubKey, scriptPubKeyLen);
-    }
+    return scriptPubKey.address(testnet);
 }
-
-TransactionOutput &TransactionOutput::operator=(TransactionOutput const &other){ 
-    free(scriptPubKey);
-    amount = other.amount;
-    scriptPubKeyLen = other.scriptPubKeyLen;
-    scriptPubKey = (uint8_t *) calloc( scriptPubKeyLen, sizeof(uint8_t));
-    memcpy(scriptPubKey, other.scriptPubKey, scriptPubKeyLen);
-    return *this; 
-};
 
 // TODO: copy constructor, = operator
 Transaction::Transaction(void){
@@ -179,7 +75,7 @@ size_t Transaction::parse(Stream &s){
         return 0;
     }
 
-    // check if I can get script len (not with available() because of timeout)
+    // check if I can get inputs len (not with available() because of timeout)
     l = s.peek();
     if(l < 0){
         return 0;
@@ -235,70 +131,7 @@ size_t Transaction::parse(Stream &s){
 size_t Transaction::parse(byte raw[], size_t len){
     ByteStream s(raw, len);
     return parse(s);
-    // if(inputsNumber > 0){
-    //     free(txIns);
-    // }
-    // if(outputsNumber > 0){
-    //     free(txOuts);
-    // }
-    // len = l;
-
-    // // parsing
-    // size_t cursor = 0;
-    // version = littleEndianToInt(raw, 4);
-    // cursor += 4;
-
-    // // varint, but currently supporting only up to 253 inputs
-    // inputsNumber = raw[cursor] & 0xFF;
-    // if(inputsNumber >= 0xFD){
-    //     return 0;
-    // }
-    // if(txIns != NULL){
-    //     free(txIns);
-    // }
-    // txIns = ( TransactionInput * )calloc( inputsNumber, sizeof(TransactionInput) );
-    // cursor ++;
-
-    // for(int i=0; i<inputsNumber; i++){
-    //     TransactionInput txIn;
-    //     cursor += txIn.parse(raw+cursor, len-cursor);
-    //     txIns[i] = txIn;
-    //     if(cursor > len){
-    //         return 0;
-    //     }
-    // }
-
-    // outputsNumber = raw[cursor] & 0xFF;
-    // if(outputsNumber >= 0xFD){
-    //     return 0;
-    // }
-    // if(txOuts != NULL){
-    //     free(txOuts);
-    // }
-    // txOuts = ( TransactionOutput * )calloc( outputsNumber, sizeof(TransactionOutput) );
-    // cursor ++;
-
-    // for(int i=0; i<outputsNumber; i++){
-    //     TransactionOutput txOut;
-    //     cursor += txOut.parse(raw+cursor, len-cursor);
-    //     txOuts[i] = txOut;
-    //     if(cursor > len){
-    //         return 0;
-    //     }
-    // }
-
-    // locktime = littleEndianToInt(raw+cursor, 4);
-    // cursor += 4;
-    // return cursor;
 }
-
-// String Transaction::outputAddress(int outputNumber, bool testnet){
-
-// }
-
-// float Transaction::outputValue(int outputNumber){
-
-// }
 
 // int Transaction::getHash(int index, PublicKey pubkey, uint8_t hash2[32]){
     // size_t cursor = 0;

@@ -39,9 +39,9 @@ void setup() {
     Serial.print("\tOutput index:  ");
     Serial.println(tx.txIns[i].outputIndex);
     Serial.print("\tScript length: ");
-    Serial.println(tx.txIns[i].scriptSigLen);
+    Serial.println(tx.txIns[i].scriptSig.length);
     Serial.print("\tScript:        ");
-    Serial.println(toHex(tx.txIns[i].scriptSig, tx.txIns[i].scriptSigLen));
+    Serial.println(tx.txIns[i].scriptSig);
     Serial.print("\tSequence:      ");
     Serial.println(tx.txIns[i].sequence);
   }

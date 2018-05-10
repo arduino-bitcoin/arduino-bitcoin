@@ -4,6 +4,7 @@
 #include "Bitcoin.h"
 #include "Hash.h"
 #include "Conversion.h"
+#include "OpCodes.h"
 #include "utility/micro-ecc/uECC.h"
 #include "utility/sha256.h"
 #include "utility/sha512.h"
@@ -251,6 +252,21 @@ String PublicKey::nestedSegwitAddress(){
     char addr[35] = { 0 };
     nestedSegwitAddress(addr, sizeof(addr));
     return String(addr);
+}
+Script PublicKey::script(int type){
+    if(type == P2PKH){
+        uint8_t arr[25];
+        arr[0] = OP_DUP;
+        arr[1] = OP_HASH160;
+        arr[2] = 20;
+        uint8_t sec_arr[65] = { 0 };
+        int l = sec(sec_arr, sizeof(sec_arr));
+        hash160(sec_arr, l, arr+3);
+        arr[23] = OP_EQUALVERIFY;
+        arr[24] = OP_CHECKSIG;
+        return Script(arr, sizeof(arr));
+    }
+    return Script();
 }
 bool PublicKey::verify(Signature sig, byte hash[32]){
     uint8_t signature[64] = {0};

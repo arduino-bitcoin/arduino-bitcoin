@@ -19,7 +19,8 @@ sha512Hmac	KEYWORD2
 
 Bitcoin	KEYWORD1
 Hash	KEYWORD1
-BaseX	KEYWORD1
+Conversion	KEYWORD1
+OpCodes	KEYWORD1
 
 Scalar	KEYWORD1
 Point	KEYWORD1
@@ -30,6 +31,8 @@ HDPublicKey	KEYWORD1
 Script	KEYWORD1
 Signature	KEYWORD1
 Transaction	KEYWORD1
+TransactionInput	KEYWORD1
+TransactionOutput	KEYWORD1
 
 #######################################
 # Methods and Functions (KEYWORD2)
@@ -52,12 +55,18 @@ publicKey	KEYWORD2
 sec	KEYWORD2
 fromHex	KEYWORD2
 toHex	KEYWORD2
+script	KEYWORD2
 
 ######################################
 # Constants (LITERAL1)
 #######################################
 
 PRIME	LITERAL1
+P2PKH	LITERAL1
+P2SH	LITERAL1
+P2WPKH	LITERAL1
+P2WSH	LITERAL1
+P2SHWPKH	LITERAL1
 
 ######################################
 # Opcodes (LITERAL1)
