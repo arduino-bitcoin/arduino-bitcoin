@@ -224,6 +224,12 @@ class HDPublicKey{
 class TransactionInput{
 public:
     TransactionInput();
+    TransactionInput(byte prev_hash[32], uint32_t prev_index);
+    TransactionInput(byte prev_hash[32], uint32_t prev_index, Script script, uint32_t sequence_number = 0xffffffff);
+    TransactionInput(byte prev_hash[32], uint32_t prev_index, uint32_t sequence_number, Script script);
+    TransactionInput(Stream & s){ parse(s); };
+    TransactionInput(byte raw[], size_t len){ parse(raw, len); };
+
     uint8_t hash[32];
     uint32_t outputIndex;
     Script scriptSig;
@@ -241,6 +247,9 @@ public:
 class TransactionOutput{
 public:
     TransactionOutput();
+    TransactionOutput(uint64_t send_amount, Script outputScript);
+    TransactionOutput(Stream & s){ parse(s); };
+    TransactionOutput(byte raw[], size_t len){ parse(raw, len); };
 
     uint64_t amount = 0;
     Script scriptPubKey;
@@ -253,6 +262,8 @@ public:
 class Transaction{
 public:
     Transaction();
+    Transaction(Stream &s){ parse(s); };
+    Transaction(byte raw[], size_t len){ parse(raw, len); };
     ~Transaction();
 
     uint32_t version = 1;
@@ -264,6 +275,9 @@ public:
     size_t parse(byte raw[], size_t len);
     uint8_t inputsNumber;
     uint8_t outputsNumber;
+    uint8_t addInput(TransactionInput txIn);
+    uint8_t addOutput(TransactionOutput txOut);
+
     // String sign(HDPrivateKey key);
     // int getHash(int index, PublicKey pubkey, uint8_t hash[32]);
     // TODO: copy()

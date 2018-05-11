@@ -7,6 +7,20 @@
 #include "utility/sha256.h"
 
 TransactionInput::TransactionInput(void){}
+TransactionInput::TransactionInput(byte prev_hash[32], uint32_t prev_index, Script script, uint32_t sequence_number){
+    memcpy(hash, prev_hash, 32);
+    outputIndex = prev_index;
+    scriptSig = script;
+    sequence = sequence_number;
+}
+TransactionInput::TransactionInput(byte prev_hash[32], uint32_t prev_index, uint32_t sequence_number, Script script){
+    TransactionInput(prev_hash, prev_index, script, sequence_number);
+}
+TransactionInput::TransactionInput(byte prev_hash[32], uint32_t prev_index){
+    Script script;
+    uint32_t sequence_number = 0xffffffff;
+    TransactionInput(prev_hash, prev_index, script, sequence_number);
+}
 size_t TransactionInput::parse(Stream &s){
     size_t len = 0;
     len += s.readBytes(hash, 32);
@@ -27,6 +41,10 @@ size_t TransactionInput::parse(byte raw[], size_t len){
 }
 
 TransactionOutput::TransactionOutput(void){}
+TransactionOutput::TransactionOutput(uint64_t send_amount, Script outputScript){
+    amount = send_amount;
+    scriptPubKey = outputScript;
+}
 size_t TransactionOutput::parse(Stream &s){
     size_t len = 0;
     uint8_t arr[8];
@@ -132,6 +150,19 @@ size_t Transaction::parse(byte raw[], size_t len){
     ByteStream s(raw, len);
     return parse(s);
 }
+uint8_t Transaction::addInput(TransactionInput txIn){
+    inputsNumber ++;
+    txIns = ( TransactionInput * )realloc( txIns, inputsNumber * sizeof(TransactionInput) );
+    txIns[inputsNumber-1] = txIn;
+    return inputsNumber;
+}
+uint8_t Transaction::addOutput(TransactionOutput txOut){
+    outputsNumber ++;
+    txOuts = ( TransactionOutput * )realloc( txOuts, outputsNumber * sizeof(TransactionOutput) );
+    txOuts[outputsNumber-1] = txOut;
+    return outputsNumber;
+}
+
 
 // int Transaction::getHash(int index, PublicKey pubkey, uint8_t hash2[32]){
     // size_t cursor = 0;
