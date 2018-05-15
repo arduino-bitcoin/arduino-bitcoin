@@ -1,6 +1,4 @@
 #include <Bitcoin.h>
-#include <OpCodes.h>
-
 
 void setup() {
   Serial.begin(9600);
@@ -11,6 +9,7 @@ void setup() {
   Serial.println(pubkey);
   Serial.println(pubkey.address());
   Serial.println(pubkey.script());
+  Serial.println(Script(pubkey));
 }
 
 void loop() {

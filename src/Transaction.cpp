@@ -22,6 +22,7 @@ TransactionInput::TransactionInput(byte prev_hash[32], uint32_t prev_index){
     TransactionInput(prev_hash, prev_index, script, sequence_number);
 }
 size_t TransactionInput::parse(Stream &s){
+    // TODO: varint! It also should be taken into account in length calcualtion
     size_t len = 0;
     len += s.readBytes(hash, 32);
     uint8_t arr[4];
@@ -30,7 +31,7 @@ size_t TransactionInput::parse(Stream &s){
     len += scriptSig.parse(s);
     len += s.readBytes(arr, 4);
     sequence = littleEndianToInt(arr, 4);
-    if((len != 32+4+1+scriptSig.length+4) || (scriptSig.length == 0)){
+    if((len != 32+4+scriptSig.length()+4) || (scriptSig.length() == 0)){
         return 0;
     }
     return len;
@@ -39,6 +40,50 @@ size_t TransactionInput::parse(byte raw[], size_t len){
     ByteStream s(raw, len);
     return parse(s);
 }
+size_t TransactionInput::length(Script script){
+    // TODO: take into account varint
+    return 32 + 4 + script.length() + 4;
+}
+size_t TransactionInput::length(){
+    // TODO: take into account varint
+    return length(scriptSig);
+}
+size_t TransactionInput::serialize(Stream &s, Script script){
+    size_t len = 0;
+    s.write(hash, 32);
+    len += 32;
+    uint8_t arr[4];
+    intToLittleEndian(outputIndex, arr, 4);
+    s.write(arr, 4);
+    len += 4;
+    len += script.serialize(s);
+    intToLittleEndian(sequence, arr, 4);
+    s.write(arr, 4);
+    len += 4;
+    return len;
+}
+size_t TransactionInput::serialize(Stream &s){
+    return serialize(s, scriptSig);
+}
+size_t TransactionInput::serialize(uint8_t array[], size_t len, Script script){
+    // TODO: refactor with ByteStream
+    if(len < length(script)){
+        return 0;
+    }
+    size_t l = 0;
+    memcpy(array, hash, 32);
+    l += 32;
+    intToLittleEndian(outputIndex, array+l, 4);
+    l += 4;
+    l += script.serialize(array+l, len-l);
+    intToLittleEndian(sequence, array+l, 4);
+    l += 4;
+    return l;
+}
+size_t TransactionInput::serialize(uint8_t array[], size_t len){
+    return serialize(array, len, scriptSig);
+}
+
 
 TransactionOutput::TransactionOutput(void){}
 TransactionOutput::TransactionOutput(uint64_t send_amount, Script outputScript){
@@ -51,7 +96,7 @@ size_t TransactionOutput::parse(Stream &s){
     len += s.readBytes(arr, 8);
     amount = littleEndianToInt(arr, 8);
     len += scriptPubKey.parse(s);
-    if((len != 8+1+scriptPubKey.length) || (scriptPubKey.length == 0)){
+    if((len != 8+scriptPubKey.length()) || (scriptPubKey.length() == 0)){
         return 0;
     }
     return len;
@@ -63,6 +108,28 @@ size_t TransactionOutput::parse(byte raw[], size_t len){
 String TransactionOutput::address(bool testnet){
     return scriptPubKey.address(testnet);
 }
+size_t TransactionOutput::length(){
+    return 8+scriptPubKey.length();
+}
+size_t TransactionOutput::serialize(Stream &s){
+    uint8_t arr[8];
+    size_t len = 0;
+    intToLittleEndian(amount, arr, 8);
+    len += 8;
+    s.write(arr, 8);
+    len += scriptPubKey.serialize(s);
+    return len;
+}
+size_t TransactionOutput::serialize(uint8_t array[], size_t len){
+    if(len < length()){
+        return 0;
+    }
+    intToLittleEndian(amount, array, 8);
+    size_t l = 8;
+    l += scriptPubKey.serialize(array+l, len-l);
+    return l;
+}
+
 
 // TODO: copy constructor, = operator
 Transaction::Transaction(void){
@@ -162,7 +229,58 @@ uint8_t Transaction::addOutput(TransactionOutput txOut){
     txOuts[outputsNumber-1] = txOut;
     return outputsNumber;
 }
-
+size_t Transaction::length(){
+    size_t len = 10; // version + locktime + inputsNumber + outputsNumber
+    for(int i=0; i<inputsNumber; i++){
+        len += txIns[i].length();
+    }
+    for(int i=0; i<outputsNumber; i++){
+        len += txOuts[i].length();
+    }
+    return len;
+}
+size_t Transaction::serialize(Stream &s){
+    uint8_t arr[4];
+    size_t len = 0;
+    intToLittleEndian(version, arr, 4);
+    s.write(arr, 4);
+    len += 4;
+    s.write(inputsNumber);
+    len ++;
+    for(int i=0; i<inputsNumber; i++){
+        len += txIns[i].serialize(s);
+    }
+    s.write(outputsNumber);
+    len ++;
+    for(int i=0; i<outputsNumber; i++){
+        len += txOuts[i].serialize(s);
+    }
+    intToLittleEndian(locktime, arr, 4);
+    s.write(arr, 4);
+    len += 4;
+    return len;
+}
+size_t Transaction::serialize(uint8_t array[], size_t len){
+    if(len < length()){
+        return 0;
+    }
+    size_t l = 0;
+    intToLittleEndian(version, array, 4);
+    l += 4;
+    array[l] = inputsNumber;
+    l ++;
+    for(int i=0; i<inputsNumber; i++){
+        l += txIns[i].serialize(array+l, len-l);
+    }
+    array[l] = outputsNumber;
+    l ++;
+    for(int i=0; i<outputsNumber; i++){
+        l += txOuts[i].serialize(array+l, len-l);
+    }
+    intToLittleEndian(locktime, array+l, 4);
+    l += 4;
+    return l;
+}
 
 // int Transaction::getHash(int index, PublicKey pubkey, uint8_t hash2[32]){
     // size_t cursor = 0;

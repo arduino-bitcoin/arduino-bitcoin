@@ -6,15 +6,29 @@
 
 Script::Script(void){}
 Script::Script(uint8_t * buffer, size_t len){
-	length = len;
-    script = (uint8_t *) calloc( length, sizeof(uint8_t));
-    memcpy(script, buffer, length);
+	scriptLen = len;
+    script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
+    memcpy(script, buffer, scriptLen);
+}
+Script::Script(PublicKey pubkey, int type){
+    if(type == P2PKH){
+    	scriptLen = 25;
+    	script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
+        script[0] = OP_DUP;
+        script[1] = OP_HASH160;
+        script[2] = 20;
+        uint8_t sec_arr[65] = { 0 };
+        int l = pubkey.sec(sec_arr, sizeof(sec_arr));
+        hash160(sec_arr, l, script+3);
+        script[23] = OP_EQUALVERIFY;
+        script[24] = OP_CHECKSIG;
+    }
 }
 Script::Script(Script const &other){
-    if(other.length > 0){
-		length = other.length;
-        script = (uint8_t *) calloc( length, sizeof(uint8_t));
-        memcpy(script, other.script, length);
+    if(other.scriptLen > 0){
+		scriptLen = other.scriptLen;
+        script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
+        memcpy(script, other.script, scriptLen);
     }
 }
 Script::~Script(void){
@@ -27,16 +41,16 @@ size_t Script::parse(Stream &s){
         return 0;
     }
     // TODO: varint!!!
-    length = s.read();
+    scriptLen = s.read();
     size_t len = 1;
 
-    script = (uint8_t *) calloc( length, sizeof(uint8_t));
-    len += s.readBytes(script, length);
+    script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
+    len += s.readBytes(script, scriptLen);
     return len;
 }
 int Script::type(){
 	if(
-		(length == 25) && 
+		(scriptLen == 25) && 
 		(script[0] == OP_DUP) &&
 		(script[1] == OP_HASH160) &&
 		(script[2] == 20) &&
@@ -63,24 +77,42 @@ String Script::address(bool testnet){
 	return "Unknown address";
 }
 void Script::clear(){
-	if(length > 0){
+	if(scriptLen > 0){
 		free(script);
-		length = 0;
+		scriptLen = 0;
 	}
 }
+size_t Script::length(){
+    return scriptLen+1; // TODO: varint!
+}
+size_t Script::serialize(Stream &s){
+    size_t len = 0;
+    s.write(scriptLen);
+    s.write(script, scriptLen);
+    return length();
+}
+size_t Script::serialize(uint8_t array[], size_t len){
+    if(len < length()){
+        return 0;
+    }
+    array[0] = scriptLen;
+    memcpy(array+1, script, scriptLen);
+    return length();
+}
+
 Script &Script::operator=(Script const &other){ 
     clear();
-    if(other.length > 0){
-		length = other.length;
-        script = (uint8_t *) calloc( length, sizeof(uint8_t));
-        memcpy(script, other.script, length);
+    if(other.scriptLen > 0){
+		scriptLen = other.scriptLen;
+        script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
+        memcpy(script, other.script, scriptLen);
     }
     return *this; 
 };
 
 Script::operator String(){ 
-	if(length>0){
-	    return toHex(script, length);
+	if(scriptLen>0){
+	    return toHex(script, scriptLen);
 	}else{
 		return "";
 	}

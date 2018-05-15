@@ -24,10 +24,14 @@ void setup() {
   }
 
   size_t len = fromHex(hex, raw, sizeof(raw));
-  Serial.println(toHex(raw, sizeof(raw)));  
-  Transaction tx;
+  Serial.println(toHex(raw, sizeof(raw)));
+  Serial.print("Raw length: ");
+  Serial.println(len);
   
+  Transaction tx;
   size_t cur = tx.parse(raw, len);
+  Serial.print("Tx length: ");
+  Serial.println(cur);
 
   Serial.print("Version: ");
   Serial.println(tx.version);
@@ -39,7 +43,7 @@ void setup() {
     Serial.print("\tOutput index:  ");
     Serial.println(tx.txIns[i].outputIndex);
     Serial.print("\tScript length: ");
-    Serial.println(tx.txIns[i].scriptSig.length);
+    Serial.println(tx.txIns[i].scriptSig.length());
     Serial.print("\tScript:        ");
     Serial.println(tx.txIns[i].scriptSig);
     Serial.print("\tSequence:      ");
@@ -55,9 +59,15 @@ void setup() {
     Serial.println(" mBTC");
   }
 
-  HDPrivateKey hdKey;
-  hdKey.fromSeed(seed, true);
-  HDPrivateKey accountKey = hdKey.hardenedChild(44).hardenedChild(1).hardenedChild(0);
+  Serial.print("Tx length(): ");
+  Serial.println(tx.length());
+  byte ser[255];
+  size_t l = tx.serialize(ser, sizeof(ser));
+  Serial.println(toHex(ser, l));
+
+//  HDPrivateKey hdKey;
+//  hdKey.fromSeed(seed, true);
+//  HDPrivateKey accountKey = hdKey.hardenedChild(44).hardenedChild(1).hardenedChild(0);
   
 //  Serial.println(tx.sign(accountKey));
   Serial.println("Done!");

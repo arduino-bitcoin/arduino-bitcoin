@@ -35,6 +35,7 @@
 #define P2WSH                  4
 #define P2SHWPKH               5 // TODO: how is it normally called?
 
+class PublicKey; // forward definition
 /*
     Signature class.
 */
@@ -58,17 +59,21 @@ class Signature{
 class Script{
 public:
     // TODO: move to protected / private
+    // TODO: length() function instead of variable
     uint8_t * script = NULL;
-    size_t length = 0;
+    size_t scriptLen = 0;
 
     Script();
     Script(uint8_t * buffer, size_t len);
+    Script(PublicKey pubkey, int type = P2PKH); // creates one of standart scripts
     Script(Script const &other);
     ~Script();
     size_t parse(Stream &s);
     int type();
     String address(bool testnet = false);
-    // TODO: size_t serialize()
+    size_t length(); // length of the serialized bytes sequence
+    size_t serialize(Stream &s); // serialize to Stream
+    size_t serialize(uint8_t array[], size_t len); // serialize to array
 
     Script &operator=(Script const &other);
     operator String();
@@ -241,7 +246,13 @@ public:
     uint64_t amount = 0; // required for fee calculation
 
     size_t parse(Stream &s);
-    size_t parse(byte raw[], size_t l);
+    size_t parse(byte raw[], size_t len);
+    size_t length(); // length of the serialized bytes sequence
+    size_t length(Script script_pubkey); // length of the serialized bytes sequence with custom script
+    size_t serialize(Stream &s); // serialize to Stream
+    size_t serialize(Stream &s, Script script_pubkey); // serialize to stream with custom script
+    size_t serialize(uint8_t array[], size_t len); // serialize to array
+    size_t serialize(uint8_t array[], size_t len, Script script_pubkey); // use custom script for serialization
 };
 
 class TransactionOutput{
@@ -257,6 +268,10 @@ public:
     size_t parse(Stream &s);
     size_t parse(byte raw[], size_t l);
     String address(bool testnet=false);
+
+    size_t length(); // length of the serialized bytes sequence
+    size_t serialize(Stream &s); // serialize to Stream
+    size_t serialize(uint8_t array[], size_t len); // serialize to array
 };
 
 class Transaction{
@@ -278,6 +293,11 @@ public:
     uint8_t addInput(TransactionInput txIn);
     uint8_t addOutput(TransactionOutput txOut);
 
+    size_t length(); // length of the serialized bytes sequence
+    size_t serialize(Stream &s); // serialize to Stream
+    size_t serialize(uint8_t array[], size_t len); // serialize to array
+
+    // TODO:
     // String sign(HDPrivateKey key);
     // int getHash(int index, PublicKey pubkey, uint8_t hash[32]);
     // TODO: copy()
