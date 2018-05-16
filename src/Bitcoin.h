@@ -288,8 +288,8 @@ public:
 
     size_t parse(Stream &s);
     size_t parse(byte raw[], size_t len);
-    uint8_t inputsNumber;
-    uint8_t outputsNumber;
+    size_t inputsNumber;
+    size_t outputsNumber;
     uint8_t addInput(TransactionInput txIn);
     uint8_t addOutput(TransactionOutput txOut);
 

@@ -289,6 +289,83 @@ void intToBigEndian(uint64_t num, byte array[], size_t arraySize){
     }
 }
 
+/* Varint */
+
+uint8_t lenVarInt(uint64_t num){
+    if(num < 0xfd){
+        return 1;
+    }
+    if((num >> 16) == 0){
+        return 3;
+    }
+    if((num >> 32) == 0){
+        return 5;
+    }
+    return 9;
+}
+uint64_t readVarInt(byte array[], size_t arraySize){
+    if(array[0] < 0xfd){
+        return array[0];
+    }else{
+        uint8_t len = (1 << (array[0] - 0xfc));
+        if(len+1 > arraySize){
+            return 0;
+        }
+        return littleEndianToInt(array + 1, len);
+    }
+}
+uint64_t readVarInt(Stream &s){
+    uint8_t first = s.read();
+    if(first < 0xfd){
+        return first;
+    }else{
+        uint8_t len = (1 << (first - 0xfc));
+        byte array[8] = { 0 };
+        s.readBytes(array, len);
+        return littleEndianToInt(array, len);
+    }
+}
+// TODO: don't repeat yourself!
+size_t writeVarInt(uint64_t num, byte array[], size_t arraySize){
+    uint8_t len = lenVarInt(num);
+    if(arraySize < len){
+        return 0;
+    }
+    if(len == 1){
+        array[0] = (uint8_t)(num & 0xFF);
+    }else{
+        switch(len){
+            case 3: array[0] = 0xfd;
+                    break;
+            case 5: array[0] = 0xfe;
+                    break;
+            case 9: array[0] = 0xff;
+                    break;
+        }
+        intToLittleEndian(num, array+1, len-1);
+    }
+    return len;
+}
+size_t writeVarInt(uint64_t num, Stream &s){
+    uint8_t len = lenVarInt(num);
+    if(len == 1){
+        s.write((uint8_t)(num & 0xFF));
+    }else{
+        switch(len){
+            case 3: s.write(0xfd);
+                    break;
+            case 5: s.write(0xfe);
+                    break;
+            case 9: s.write(0xff);
+                    break;
+        }
+        uint8_t array[8] = { 0 };
+        intToLittleEndian(num, array, len-1);
+        s.write(array, len-1);
+    }
+    return len;
+}
+
 /* Stream conversion */
 ByteStream::ByteStream(uint8_t * buffer, size_t length){
     len = length;

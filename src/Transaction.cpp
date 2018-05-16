@@ -22,7 +22,6 @@ TransactionInput::TransactionInput(byte prev_hash[32], uint32_t prev_index){
     TransactionInput(prev_hash, prev_index, script, sequence_number);
 }
 size_t TransactionInput::parse(Stream &s){
-    // TODO: varint! It also should be taken into account in length calcualtion
     size_t len = 0;
     len += s.readBytes(hash, 32);
     uint8_t arr[4];
@@ -41,11 +40,9 @@ size_t TransactionInput::parse(byte raw[], size_t len){
     return parse(s);
 }
 size_t TransactionInput::length(Script script){
-    // TODO: take into account varint
     return 32 + 4 + script.length() + 4;
 }
 size_t TransactionInput::length(){
-    // TODO: take into account varint
     return length(scriptSig);
 }
 size_t TransactionInput::serialize(Stream &s, Script script){
@@ -165,11 +162,8 @@ size_t Transaction::parse(Stream &s){
     if(l < 0){
         return 0;
     }
-    inputsNumber = s.read();
-    len++;
-    if(inputsNumber >= 0xFD){
-        return 0;
-    }
+    inputsNumber = readVarInt(s);
+    len += lenVarInt(inputsNumber);
     txIns = ( TransactionInput * )calloc( inputsNumber, sizeof(TransactionInput) );
     for(int i = 0; i < inputsNumber; i++){
         TransactionInput txIn;
@@ -186,11 +180,8 @@ size_t Transaction::parse(Stream &s){
     if(l < 0){
         return 0;
     }
-    outputsNumber = s.read();
-    len++;
-    if(outputsNumber >= 0xFD){
-        return 0;
-    }
+    outputsNumber = readVarInt(s);
+    len += lenVarInt(outputsNumber);
     txOuts = ( TransactionOutput * )calloc( outputsNumber, sizeof(TransactionOutput) );
     for(int i = 0; i < outputsNumber; i++){
         TransactionOutput txOut;
@@ -230,7 +221,7 @@ uint8_t Transaction::addOutput(TransactionOutput txOut){
     return outputsNumber;
 }
 size_t Transaction::length(){
-    size_t len = 10; // version + locktime + inputsNumber + outputsNumber
+    size_t len = 8 + lenVarInt(inputsNumber) + lenVarInt(outputsNumber); // version + locktime + inputsNumber + outputsNumber
     for(int i=0; i<inputsNumber; i++){
         len += txIns[i].length();
     }
@@ -245,13 +236,13 @@ size_t Transaction::serialize(Stream &s){
     intToLittleEndian(version, arr, 4);
     s.write(arr, 4);
     len += 4;
-    s.write(inputsNumber);
-    len ++;
+    writeVarInt(inputsNumber, s);
+    len += lenVarInt(inputsNumber);
     for(int i=0; i<inputsNumber; i++){
         len += txIns[i].serialize(s);
     }
-    s.write(outputsNumber);
-    len ++;
+    writeVarInt(outputsNumber, s);
+    len += lenVarInt(outputsNumber);
     for(int i=0; i<outputsNumber; i++){
         len += txOuts[i].serialize(s);
     }
@@ -267,13 +258,13 @@ size_t Transaction::serialize(uint8_t array[], size_t len){
     size_t l = 0;
     intToLittleEndian(version, array, 4);
     l += 4;
-    array[l] = inputsNumber;
-    l ++;
+    writeVarInt(inputsNumber, array+l, len-l);
+    l += lenVarInt(inputsNumber);
     for(int i=0; i<inputsNumber; i++){
         l += txIns[i].serialize(array+l, len-l);
     }
-    array[l] = outputsNumber;
-    l ++;
+    writeVarInt(outputsNumber, array+l, len-l);
+    l += lenVarInt(outputsNumber);
     for(int i=0; i<outputsNumber; i++){
         l += txOuts[i].serialize(array+l, len-l);
     }

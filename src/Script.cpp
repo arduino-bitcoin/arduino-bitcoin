@@ -40,9 +40,8 @@ size_t Script::parse(Stream &s){
     if(l < 0){
         return 0;
     }
-    // TODO: varint!!!
-    scriptLen = s.read();
-    size_t len = 1;
+    scriptLen = readVarInt(s);
+    size_t len = lenVarInt(scriptLen);
 
     script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
     len += s.readBytes(script, scriptLen);
@@ -83,11 +82,11 @@ void Script::clear(){
 	}
 }
 size_t Script::length(){
-    return scriptLen+1; // TODO: varint!
+    return scriptLen + lenVarInt(scriptLen);
 }
 size_t Script::serialize(Stream &s){
     size_t len = 0;
-    s.write(scriptLen);
+    writeVarInt(scriptLen, s);
     s.write(script, scriptLen);
     return length();
 }
@@ -95,8 +94,9 @@ size_t Script::serialize(uint8_t array[], size_t len){
     if(len < length()){
         return 0;
     }
-    array[0] = scriptLen;
-    memcpy(array+1, script, scriptLen);
+    size_t l = lenVarInt(scriptLen);
+    writeVarInt(scriptLen, array, len);
+    memcpy(array+l, script, scriptLen);
     return length();
 }
 

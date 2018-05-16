@@ -57,6 +57,18 @@ fromHex	KEYWORD2
 toHex	KEYWORD2
 script	KEYWORD2
 
+littleEndianToInt	KEYWORD2
+intToLittleEndian	KEYWORD2
+bigEndianToInt	KEYWORD2
+intToBigEndian	KEYWORD2
+
+lenVarInt	KEYWORD2
+readVarInt	KEYWORD2
+readVarInt	KEYWORD2
+writeVarInt	KEYWORD2
+writeVarInt	KEYWORD2
+
+
 ######################################
 # Constants (LITERAL1)
 #######################################

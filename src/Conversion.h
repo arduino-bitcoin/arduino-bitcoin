@@ -36,6 +36,13 @@ void intToLittleEndian(uint64_t num, byte array[], size_t arraySize);
 uint64_t bigEndianToInt(byte array[], size_t arraySize);
 void intToBigEndian(uint64_t num, byte array[], size_t arraySize);
 
+/* varint */
+uint8_t lenVarInt(uint64_t num); // returns length of the array required for varint encoding
+uint64_t readVarInt(byte array[], size_t arraySize);
+uint64_t readVarInt(Stream &s);
+size_t writeVarInt(uint64_t num, byte array[], size_t arraySize);
+size_t writeVarInt(uint64_t num, Stream &s);
+
 /* Stream convertors */
 
 /* ByteStream class
