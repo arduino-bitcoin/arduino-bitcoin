@@ -54,6 +54,7 @@ class ByteStream : public Stream{
 	size_t cursor = 0;
 	uint8_t * buf = NULL;
 public:
+	ByteStream();
 	ByteStream(uint8_t * buffer, size_t length);
 	~ByteStream();
 	int available();
@@ -61,7 +62,8 @@ public:
 	int peek();
 	void flush();
 	size_t readBytes( uint8_t * buffer, size_t length);
-	size_t write(uint8_t);
+	size_t write(uint8_t b);
+	size_t write(uint8_t * arr, size_t length);
 };
 
 

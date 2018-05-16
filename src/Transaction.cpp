@@ -273,6 +273,56 @@ size_t Transaction::serialize(uint8_t array[], size_t len){
     return l;
 }
 
+int Transaction::hash(uint8_t hash[32]){
+    // TODO: refactor with stream hash functions
+    uint8_t h[32] = { 0 };
+    ByteStream s;
+    serialize(s);
+    size_t len = s.available();
+    uint8_t * arr;
+    arr = (uint8_t *) calloc( len, sizeof(uint8_t));
+    s.readBytes(arr, len);
+    doubleSha(arr, len, h);
+    free(arr);
+    for(int i=0; i<32; i++){ // flip
+        hash[i] = h[31-i];
+    }
+    return 0;
+}
+
+int Transaction::sigHash(uint8_t inputNumber, Script scriptPubKey, uint8_t hash[32]){
+    Script empty;
+    ByteStream s;
+
+    uint8_t arr[4];
+    intToLittleEndian(version, arr, 4);
+    s.write(arr, 4);
+    writeVarInt(inputsNumber, s);
+    for(int i=0; i<inputsNumber; i++){
+        if(i != inputNumber){
+            txIns[i].serialize(s, empty);
+        }else{
+            txIns[i].serialize(s, scriptPubKey);
+        }
+    }
+    writeVarInt(outputsNumber, s);
+    for(int i=0; i<outputsNumber; i++){
+        txOuts[i].serialize(s);
+    }
+    intToLittleEndian(locktime, arr, 4);
+    s.write(arr, 4);
+    uint8_t sighash[] = {1,0,0,0}; // SIGHASH_ALL
+    s.write(sighash, sizeof(sighash));
+
+    size_t len = s.available();
+    uint8_t * buf;
+    buf = (uint8_t *) calloc( len, sizeof(uint8_t));
+    s.readBytes(buf, len);
+    doubleSha(buf, len, hash);
+    free(buf);
+    return 0;
+}
+
 // int Transaction::getHash(int index, PublicKey pubkey, uint8_t hash2[32]){
     // size_t cursor = 0;
     // uint8_t hash[32] = { 0 };

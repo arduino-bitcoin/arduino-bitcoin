@@ -1,6 +1,7 @@
 #ifndef  HASH_H_18NLNNCSJ2           /* make sure this file is read only once */
 #define  HASH_H_18NLNNCSJ2
 
+#include <Arduino.h>
 #include <stdint.h>
 #include <string.h>
 #include "utility/micro-ecc/uECC.h"
@@ -30,6 +31,7 @@ int doubleSha(byte message[], size_t len, byte hash[32]);
 int sha512(byte message[], size_t len, byte hash[64]);
 int sha512Hmac(byte key[], size_t keyLen, byte message[], size_t messageLen, byte hash[64]);
 
+// TODO: stream version of hash functions
 
 /*
  * Following functions are required by uECC library to sign with deterministic k

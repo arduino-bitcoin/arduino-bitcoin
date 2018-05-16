@@ -297,9 +297,12 @@ public:
     size_t serialize(Stream &s); // serialize to Stream
     size_t serialize(uint8_t array[], size_t len); // serialize to array
 
+    // populates hash with transaction hash
+    int hash(uint8_t hash[32]);
+    // populates hash with data for signing certain input with particular scriptPubkey
+    int sigHash(uint8_t inputNumber, Script scriptPubKey, uint8_t hash[32]);
     // TODO:
     // String sign(HDPrivateKey key);
-    // int getHash(int index, PublicKey pubkey, uint8_t hash[32]);
     // TODO: copy()
     // TODO: sort() - bip69, Lexicographical Indexing of Transaction Inputs and Outputs
 };

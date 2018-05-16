@@ -367,6 +367,7 @@ size_t writeVarInt(uint64_t num, Stream &s){
 }
 
 /* Stream conversion */
+ByteStream::ByteStream(){}
 ByteStream::ByteStream(uint8_t * buffer, size_t length){
     len = length;
     buf = (uint8_t *) calloc( length, sizeof(uint8_t));
@@ -410,6 +411,15 @@ size_t ByteStream::readBytes(uint8_t * buffer, size_t length){
     return length;
 }
 size_t ByteStream::write(uint8_t b){
+    buf = ( uint8_t * )realloc( buf, len + 1 );
+    buf[len] = b;
+    len ++;
     return 1;
+}
+size_t ByteStream::write(uint8_t * arr, size_t length){
+    buf = ( uint8_t * )realloc( buf, len + length );
+    memcpy(buf + len, arr, length);
+    len += length;
+    return length;
 }
 
