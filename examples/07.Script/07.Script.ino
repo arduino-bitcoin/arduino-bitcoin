@@ -22,6 +22,10 @@ void setup() {
                   0xee, 0xd7, 0x7c, 0x88, 0xac };
   Script pscript(arr2, sizeof(arr2));
   Serial.println(pscript);
+
+  Serial.println("mqqXkvzA5y1MgvWTaHWXFgJCWDA959cN1K");
+  Script addrScript("mqqXkvzA5y1MgvWTaHWXFgJCWDA959cN1K");
+  Serial.println(addrScript);
 }
 
 void loop() {

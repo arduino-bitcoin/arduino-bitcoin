@@ -65,6 +65,7 @@ public:
 
     Script();
     Script(uint8_t * buffer, size_t len);
+    Script(char address[]); // creates script from address
     Script(PublicKey pubkey, int type = P2PKH); // creates one of standart scripts
     Script(Script const &other);
     ~Script();
@@ -229,11 +230,14 @@ class HDPublicKey{
 class TransactionInput{
 public:
     TransactionInput();
-    TransactionInput(byte prev_hash[32], uint32_t prev_index);
-    TransactionInput(byte prev_hash[32], uint32_t prev_index, Script script, uint32_t sequence_number = 0xffffffff);
-    TransactionInput(byte prev_hash[32], uint32_t prev_index, uint32_t sequence_number, Script script);
-    TransactionInput(Stream & s){ parse(s); };
-    TransactionInput(byte raw[], size_t len){ parse(raw, len); };
+    TransactionInput(byte prev_id[32], uint32_t prev_index);
+    TransactionInput(byte prev_id[32], uint32_t prev_index, Script script, uint32_t sequence_number = 0xffffffff);
+    TransactionInput(byte prev_id[32], uint32_t prev_index, uint32_t sequence_number, Script script);
+    TransactionInput(TransactionInput const &other);
+    TransactionInput &operator=(TransactionInput const &other);
+
+    // TransactionInput(Stream & s){ parse(s); };
+    // TransactionInput(byte raw[], size_t len){ parse(raw, len); };
 
     uint8_t hash[32];
     uint32_t outputIndex;
@@ -259,8 +263,11 @@ class TransactionOutput{
 public:
     TransactionOutput();
     TransactionOutput(uint64_t send_amount, Script outputScript);
-    TransactionOutput(Stream & s){ parse(s); };
-    TransactionOutput(byte raw[], size_t len){ parse(raw, len); };
+    TransactionOutput(uint64_t send_amount, char address[]);
+    TransactionOutput(TransactionOutput const &other);
+    TransactionOutput &operator=(TransactionOutput const &other);
+    // TransactionOutput(Stream & s){ parse(s); };
+    // TransactionOutput(byte raw[], size_t len){ parse(raw, len); };
 
     uint64_t amount = 0;
     Script scriptPubKey;
@@ -288,8 +295,8 @@ public:
 
     size_t parse(Stream &s);
     size_t parse(byte raw[], size_t len);
-    size_t inputsNumber;
-    size_t outputsNumber;
+    size_t inputsNumber = 0;
+    size_t outputsNumber = 0;
     uint8_t addInput(TransactionInput txIn);
     uint8_t addOutput(TransactionOutput txOut);
 
@@ -299,8 +306,14 @@ public:
 
     // populates hash with transaction hash
     int hash(uint8_t hash[32]);
+    int id(uint8_t id_arr[32]); // returns id of the transaction (reverse of hash)
+
     // populates hash with data for signing certain input with particular scriptPubkey
-    int sigHash(uint8_t inputNumber, Script scriptPubKey, uint8_t hash[32]);
+    int sigHash(uint8_t inputIndex, Script scriptPubKey, uint8_t hash[32]);
+
+    // signes input and returns scriptSig with signature and public key
+    Script signInput(uint8_t inputIndex, PrivateKey pk);
+
     // TODO:
     // String sign(HDPrivateKey key);
     // TODO: copy()

@@ -4,11 +4,35 @@
 #include "Conversion.h"
 #include "OpCodes.h"
 
-Script::Script(void){}
+Script::Script(void){
+    scriptLen = 0;
+    script = NULL;
+}
 Script::Script(uint8_t * buffer, size_t len){
 	scriptLen = len;
     script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
     memcpy(script, buffer, scriptLen);
+}
+Script::Script(char * address){
+    uint8_t addr[21];
+    size_t len = strlen(address);
+    if(len > 100){ // very wrong address
+        return;
+    }
+    int l = fromBase58Check(address, len, addr, sizeof(addr));
+    if(l != 21){ // either wrong checksum or wierd address
+        return;
+    }
+    if((addr[0] == BITCOIN_MAINNET_P2PKH) || (addr[0] == BITCOIN_TESTNET_P2PKH)){
+        scriptLen = 25;
+        script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
+        script[0] = OP_DUP;
+        script[1] = OP_HASH160;
+        script[2] = 20;
+        memcpy(script+3, addr+1, 20);
+        script[23] = OP_EQUALVERIFY;
+        script[24] = OP_CHECKSIG;
+    }
 }
 Script::Script(PublicKey pubkey, int type){
     if(type == P2PKH){

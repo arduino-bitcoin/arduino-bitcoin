@@ -68,6 +68,10 @@ readVarInt	KEYWORD2
 writeVarInt	KEYWORD2
 writeVarInt	KEYWORD2
 
+addInput	KEYWORD2
+addOutput	KEYWORD2
+signInput	KEYWORD2
+sigHash	KEYWORD2
 
 ######################################
 # Constants (LITERAL1)
