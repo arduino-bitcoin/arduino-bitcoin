@@ -56,7 +56,7 @@ Signature::Signature(byte der[]){
     memcpy(s, der+4+rlen+2+slen-32, 32);
 }
 
-Signature::Signature(char der[]){
+Signature::Signature(char * der){
     byte sigRaw[75] = { 0 };
     byte v1 = hexToVal(der[2]);
     byte v2 = hexToVal(der[3]);

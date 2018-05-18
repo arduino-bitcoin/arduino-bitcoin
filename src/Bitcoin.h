@@ -35,6 +35,11 @@
 #define P2WSH                  4
 #define P2SHWPKH               5 // TODO: how is it normally called?
 
+#define SIGHASH_ALL            1
+#define SIGHASH_NONE           2
+#define SIGHASH_SINGLE         3
+
+
 class PublicKey; // forward definition
 /*
     Signature class.
@@ -46,9 +51,8 @@ class Signature{
         Signature();
         Signature(byte r_arr[32], byte s_arr[32]);
         Signature(byte der[]); // parses binary array
-        Signature(char der[]); // parses hex string
+        Signature(char * der);
         size_t der(uint8_t * bytes, size_t len);
-        size_t length();
         void bin(byte arr[64]); // 64-byte array <r[32]><s[32]>
         operator String();
 };
@@ -78,6 +82,10 @@ public:
     size_t serialize(uint8_t array[], size_t len); // serialize to array
     size_t push(uint8_t code);
     size_t push(uint8_t data[], size_t len);
+    size_t push(PublicKey pubkey); // adds <len><sec> to the script
+    size_t push(Signature sig);//, uint8_t sigType = SIGHASH_ALL); // adds <len><der><sigType> to the script
+    size_t push(Script sc); // adds <len><script> to the script (used for P2SH)
+
     Script scriptPubkey();
 
     Script &operator=(Script const &other);

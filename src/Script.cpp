@@ -162,7 +162,7 @@ size_t Script::push(uint8_t code){
     script[scriptLen-1] = code;
     return scriptLen;
 }
-size_t Script::push(uint8_t data[], size_t len){
+size_t Script::push(uint8_t * data, size_t len){
     if(scriptLen == 0){
         script = (uint8_t *) calloc( len, sizeof(uint8_t));
     }else{
@@ -172,6 +172,31 @@ size_t Script::push(uint8_t data[], size_t len){
     scriptLen += len;
     return scriptLen;
 }
+size_t Script::push(PublicKey pubkey){
+    uint8_t sec[65];
+    uint8_t len = pubkey.sec(sec, sizeof(sec));
+    push(len);
+    push(sec, len);
+    return scriptLen;
+}
+size_t Script::push(Signature sig){//, uint8_t sigType){
+    uint8_t der[75];
+    uint8_t len = sig.der(der, sizeof(der));
+    push(len+1);
+    push(der, len);
+    // push(sigType);
+    push(SIGHASH_ALL);
+    return scriptLen;
+}
+size_t Script::push(Script sc){
+    uint8_t len = sc.length();
+    uint8_t * tmp;
+    tmp = (uint8_t *)calloc(len, sizeof(uint8_t));
+    sc.serialize(tmp, len);
+    push(tmp, len);
+    return scriptLen;
+}
+
 Script Script::scriptPubkey(){
     Script sc;
     uint8_t h[20];

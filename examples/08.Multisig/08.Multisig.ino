@@ -23,7 +23,7 @@ void setup() {
   // Order of public keys in multisig is important
   // It makes sense to sort them
   // TODO: sort
-  PublicKey cosigners[2] = {privateKey.publicKey(), cosignerPublicKey};
+  PublicKey cosigners[2] = { privateKey.publicKey(), cosignerPublicKey };
 
   Serial.println("Cosigner's public keys:");
   for(int i=0; i< 2; i++){
@@ -34,10 +34,7 @@ void setup() {
   Script redeemScript;
   redeemScript.push(OP_2);
   for(int i=0; i< 2; i++){
-    byte secArray[65];
-    size_t len = cosigners[i].sec(secArray, sizeof(secArray));
-    redeemScript.push(len);
-    redeemScript.push(secArray, len);
+    redeemScript.push(cosigners[i]);
   }
   redeemScript.push(OP_2);
   redeemScript.push(OP_CHECKMULTISIG);
@@ -96,24 +93,14 @@ void setup() {
   // putting them together
   Script scriptSig;
   scriptSig.push(OP_0);
-  byte der1[75];
-  size_t l1 = sig1.der(der1, sizeof(der1));
-  scriptSig.push(l1+1);
-  scriptSig.push(der1, l1);
-  scriptSig.push(0x01);
+  scriptSig.push(sig1);
+  scriptSig.push(sig2);
   
-  byte der2[75];
-  size_t l2 = sig2.der(der2, sizeof(der2));
-  scriptSig.push(l2+1);
-  scriptSig.push(der2, l2);
-  scriptSig.push(0x01);
+  scriptSig.push(redeemScript);
 
-  byte redeemRaw[255];
-  size_t ls = redeemScript.serialize(redeemRaw, sizeof(redeemRaw));
-  
-  scriptSig.push(redeemRaw, ls);
   Serial.println("ScriptSig:");
   Serial.println(scriptSig);
+
   tx.txIns[0].scriptSig = scriptSig;
   
   Serial.println("Signed transaction:");

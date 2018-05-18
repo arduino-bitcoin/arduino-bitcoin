@@ -182,15 +182,11 @@ size_t fromBase58Length(const char * array, size_t arraySize){
 // TODO: fix wrong size estimate, use malloc
 size_t fromBase58(const char * encoded, size_t encodedSize, uint8_t * output, size_t outputSize){
 
+    memset(output, 0, outputSize);
     size_t size = fromBase58Length(encoded, encodedSize);
-    if(outputSize < size){
-        return 0;
-    }
+    uint8_t * tmp;
+    tmp = (uint8_t *) calloc(size, sizeof(uint8_t));
 
-    // zero everything
-    for(size_t i = 0; i < outputSize; i++){
-        output[i] = 0;
-    }
     uint8_t zeroCount = 0;
     for(int i = 0; i<encodedSize; i++){
         if(encoded[i] == BASE58_CHARS[0]){
@@ -208,11 +204,11 @@ size_t fromBase58(const char * encoded, size_t encodedSize, uint8_t * output, si
             if(val == 58){ // end of line '/0'
               return size;
             }
-            for(size_t j = 0; j < outputSize; j++){
-                uint16_t cur = output[outputSize-j-1]*58;
+            for(size_t j = 0; j < size; j++){
+                uint16_t cur = tmp[size-j-1]*58;
                 cur += val;
                 val = cur/256;
-                output[outputSize-j-1] = cur%256;
+                tmp[size-j-1] = cur%256;
             }
         }else{
             return 0;
@@ -220,21 +216,19 @@ size_t fromBase58(const char * encoded, size_t encodedSize, uint8_t * output, si
     }
     // shifting array
     uint8_t shift = 0;
-    for(int i = zeroCount; i < outputSize; i++){
-        if(output[i] == 0){
+    for(int i = zeroCount; i < size; i++){
+        if(tmp[i] == 0){
             shift++;
         }else{
             break;
         }
     }
-    if(shift > 0){
-        for(int i = shift; i < outputSize; i++){
-            output[i-shift] = output[i];
-            output[i] = 0;
-        }
+    if(size-shift > outputSize){
+        return 0;
     }
-
-    return outputSize-shift;
+    memcpy(output, tmp+shift, size-shift);
+    free(tmp);
+    return size-shift;
 }
 
 // TODO: add size check
@@ -242,6 +236,9 @@ size_t fromBase58Check(const char * encoded, size_t encodedSize, uint8_t * outpu
     uint8_t * arr;
     arr = (byte *) malloc(outputSize+4);
     size_t l = fromBase58(encoded, encodedSize, arr, outputSize+4);
+    if(l<4){
+        return 0;
+    }
     // memcpy(arr, array, arraySize);
 
     uint8_t hash[32];
