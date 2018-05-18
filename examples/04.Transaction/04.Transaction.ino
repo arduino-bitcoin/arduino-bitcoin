@@ -1,19 +1,19 @@
 #include <Bitcoin.h>
 
-// Single private key for testnet
-PrivateKey privateKey("cQwxqQwCwGoirnTkVnNt4XqJuEv24HYBvVWCTLtL5g1kx9Q1AEhE");
-
 void setup() {
   Serial.begin(9600);
   while(!Serial){
     ;
   }
 
+  // Single private key for testnet
+  PrivateKey privateKey("cQwxqQwCwGoirnTkVnNt4XqJuEv24HYBvVWCTLtL5g1kx9Q1AEhE");
+
   // previous transaction we are spending
   byte prevId[32];
   fromHex("c497cec7ca71466478833d27177299d01a72cb1db92278c68e2c5ee1a7560121", prevId, 32);
   int prevIndex = 1; // second output
-  TransactionInput txin(prevId, prevIndex);
+  TransactionInput txIn(prevId, prevIndex);
 
   // addresses to send bitcoins
   char destinationAddress[] = "mqqXkvzA5y1MgvWTaHWXFgJCWDA959cN1K";
@@ -33,7 +33,7 @@ void setup() {
 
   // constructing actual transaction
   Transaction tx;
-  tx.addInput(txin);
+  tx.addInput(txIn);
   tx.addOutput(txOutDestination);
   tx.addOutput(txOutChange);
   
@@ -74,9 +74,10 @@ void setup() {
   Serial.println("Unsigned transaction:");
   Serial.println(toHex(ser, l));
 
+  // signing transaction
   Serial.println("Signing transaction...");
-  Script sc = tx.signInput(0, privateKey);
-  Serial.println(sc);
+  Signature sig = tx.signInput(0, privateKey);
+  Serial.println(sig);
 
   Serial.print("Signed tx length(): ");
   Serial.println(tx.length());

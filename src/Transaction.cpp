@@ -387,10 +387,10 @@ int Transaction::sigHash(uint8_t inputIndex, Script scriptPubKey, uint8_t hash[3
     return 0;
 }
 
-Script Transaction::signInput(uint8_t inputIndex, PrivateKey pk){
+Signature Transaction::signInput(uint8_t inputIndex, PrivateKey pk, Script redeemScript){
     uint8_t h[32];
+    sigHash(inputIndex, redeemScript, h);
     PublicKey pubkey = pk.publicKey();
-    sigHash(inputIndex, pubkey.script(), h);
     Signature sig = pk.sign(h);
     uint8_t der[80] = { 0 };
     size_t derLen = sig.der(der, sizeof(der));
@@ -409,5 +409,31 @@ Script Transaction::signInput(uint8_t inputIndex, PrivateKey pk){
     Script sc;
     sc.parse(s);
     txIns[inputIndex].scriptSig = sc;
-    return sc;
+    return sig;
+}
+
+Signature Transaction::signInput(uint8_t inputIndex, PrivateKey pk){
+    PublicKey pubkey = pk.publicKey();
+    return signInput(inputIndex, pk, pubkey.script());
+    // uint8_t h[32];
+    // sigHash(inputIndex, pubkey.script(), h);
+    // Signature sig = pk.sign(h);
+    // uint8_t der[80] = { 0 };
+    // size_t derLen = sig.der(der, sizeof(der));
+    // der[derLen] = 1;
+    // derLen++;
+
+    // uint8_t sec[65] = { 0 };
+    // size_t secLen = pubkey.sec(sec, sizeof(sec));
+
+    // uint8_t lenArr[2] = { secLen + derLen + 2, derLen };
+    // ByteStream s;
+    // s.write(lenArr, 2);
+    // s.write(der, derLen);
+    // s.write(secLen);
+    // s.write(sec, secLen);
+    // Script sc;
+    // sc.parse(s);
+    // txIns[inputIndex].scriptSig = sc;
+    // return sig;
 }

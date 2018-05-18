@@ -48,6 +48,7 @@ class Signature{
         Signature(byte der[]); // parses binary array
         Signature(char der[]); // parses hex string
         size_t der(uint8_t * bytes, size_t len);
+        size_t length();
         void bin(byte arr[64]); // 64-byte array <r[32]><s[32]>
         operator String();
 };
@@ -75,6 +76,9 @@ public:
     size_t length(); // length of the serialized bytes sequence
     size_t serialize(Stream &s); // serialize to Stream
     size_t serialize(uint8_t array[], size_t len); // serialize to array
+    size_t push(uint8_t code);
+    size_t push(uint8_t data[], size_t len);
+    Script scriptPubkey();
 
     Script &operator=(Script const &other);
     operator String();
@@ -312,7 +316,8 @@ public:
     int sigHash(uint8_t inputIndex, Script scriptPubKey, uint8_t hash[32]);
 
     // signes input and returns scriptSig with signature and public key
-    Script signInput(uint8_t inputIndex, PrivateKey pk);
+    Signature signInput(uint8_t inputIndex, PrivateKey pk);
+    Signature signInput(uint8_t inputIndex, PrivateKey pk, Script redeemScript);
 
     // TODO:
     // String sign(HDPrivateKey key);
