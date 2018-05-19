@@ -3,6 +3,7 @@
 #include "Hash.h"
 #include "Conversion.h"
 #include "OpCodes.h"
+#include "utility/segwit_addr.h"
 
 Script::Script(void){
     scriptLen = 0;
@@ -19,27 +20,45 @@ Script::Script(char * address){
     if(len > 100){ // very wrong address
         return;
     }
-    int l = fromBase58Check(address, len, addr, sizeof(addr));
-    if(l != 21){ // either wrong checksum or wierd address
-        return;
-    }
-    if((addr[0] == BITCOIN_MAINNET_P2PKH) || (addr[0] == BITCOIN_TESTNET_P2PKH)){
-        scriptLen = 25;
+    // segwit
+    if((memcmp(address,"bc", 2) == 0) || (memcmp(address,"tb", 2) == 0)){
+        int ver = 0;
+        uint8_t prog[32];
+        size_t prog_len = 0;
+        char hrp[] = "bc";
+        memcpy(hrp, address, 2);
+        int r = segwit_addr_decode(&ver, prog, &prog_len,hrp, address);
+        if(r != 1){ // decoding failed
+            return;
+        }
+        scriptLen = prog_len + 2;
         script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
-        script[0] = OP_DUP;
-        script[1] = OP_HASH160;
-        script[2] = 20;
-        memcpy(script+3, addr+1, 20);
-        script[23] = OP_EQUALVERIFY;
-        script[24] = OP_CHECKSIG;
-    }
-    if((addr[0] == BITCOIN_MAINNET_P2SH) || (addr[0] == BITCOIN_TESTNET_P2SH)){
-        scriptLen = 23;
-        script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
-        script[1] = OP_HASH160;
-        script[2] = 20;
-        memcpy(script+2, addr+1, 20);
-        script[22] = OP_EQUAL;
+        script[0] = ver;
+        script[1] = prog_len; // varint?
+        memcpy(script+2, prog, prog_len);
+    }else{ // legacy or nested segwit
+        int l = fromBase58Check(address, len, addr, sizeof(addr));
+        if(l != 21){ // either wrong checksum or wierd address
+            return;
+        }
+        if((addr[0] == BITCOIN_MAINNET_P2PKH) || (addr[0] == BITCOIN_TESTNET_P2PKH)){
+            scriptLen = 25;
+            script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
+            script[0] = OP_DUP;
+            script[1] = OP_HASH160;
+            script[2] = 20;
+            memcpy(script+3, addr+1, 20);
+            script[23] = OP_EQUALVERIFY;
+            script[24] = OP_CHECKSIG;
+        }
+        if((addr[0] == BITCOIN_MAINNET_P2SH) || (addr[0] == BITCOIN_TESTNET_P2SH)){
+            scriptLen = 23;
+            script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
+            script[1] = OP_HASH160;
+            script[2] = 20;
+            memcpy(script+2, addr+1, 20);
+            script[22] = OP_EQUAL;
+        }
     }
 }
 Script::Script(PublicKey pubkey, int type){
@@ -98,6 +117,20 @@ int Script::type(){
     ){
         return P2SH;
     }
+    if(
+        (scriptLen == 22) &&
+        (script[0] == 0x00) &&
+        (script[1] == 20)
+    ){
+        return P2WPKH;
+    }
+    if(
+        (scriptLen == 34) &&
+        (script[0] == 0x00) &&
+        (script[1] == 32)
+    ){
+        return P2WSH;
+    }
 	return 0;
 }
 String Script::address(bool testnet){
@@ -123,6 +156,15 @@ String Script::address(bool testnet){
         memcpy(addr+1, script + 2, 20);
         char address[40] = { 0 };
         toBase58Check(addr, 21, address, sizeof(address));
+        return String(address);
+    }
+    if(type() == P2WPKH || type() == P2WSH){
+        char address[76] = { 0 };
+        char prefix[] = "bc";
+        if(testnet){
+            memcpy(prefix, "tb", 2);
+        }
+        segwit_addr_encode(address, prefix, script[0], script+2, script[1]);
         return String(address);
     }
 	return "Unknown address";

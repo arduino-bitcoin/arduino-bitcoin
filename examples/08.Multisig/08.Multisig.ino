@@ -61,7 +61,7 @@ void setup() {
   unsigned long availableAmount = 2000000; // 20 mBTC
   unsigned long fee = 1500;
   unsigned long sendAmount = availableAmount-fee;
-  TransactionOutput txOut(sendAmount, destinationAddress);
+  TransactionOutput txOut(destinationAddress, sendAmount);
 
   // transaction itself
   Transaction tx;

@@ -33,7 +33,8 @@
 #define P2SH                   2
 #define P2WPKH                 3
 #define P2WSH                  4
-#define P2SHWPKH               5 // TODO: how is it normally called?
+#define P2WPKH_IN_P2SH         5
+#define P2WSH_IN_P2SH          6
 
 #define SIGHASH_ALL            1
 #define SIGHASH_NONE           2
@@ -243,6 +244,7 @@ class TransactionInput{
 public:
     TransactionInput();
     TransactionInput(byte prev_id[32], uint32_t prev_index);
+    TransactionInput(char prev_id_hex[], uint32_t prev_index);
     TransactionInput(byte prev_id[32], uint32_t prev_index, Script script, uint32_t sequence_number = 0xffffffff);
     TransactionInput(byte prev_id[32], uint32_t prev_index, uint32_t sequence_number, Script script);
     TransactionInput(TransactionInput const &other);
@@ -256,11 +258,15 @@ public:
     Script scriptSig;
     uint32_t sequence;
 
+    // For segwit:
+    Script witnessProgram;
+
     // following information is optional, 
     // can be obtained from spending output
     Script scriptPubKey;
     uint64_t amount = 0; // required for fee calculation
 
+    bool isSegwit();
     size_t parse(Stream &s);
     size_t parse(byte raw[], size_t len);
     size_t length(); // length of the serialized bytes sequence
@@ -269,6 +275,7 @@ public:
     size_t serialize(Stream &s, Script script_pubkey); // serialize to stream with custom script
     size_t serialize(uint8_t array[], size_t len); // serialize to array
     size_t serialize(uint8_t array[], size_t len, Script script_pubkey); // use custom script for serialization
+    operator String();
 };
 
 class TransactionOutput{
@@ -276,6 +283,8 @@ public:
     TransactionOutput();
     TransactionOutput(uint64_t send_amount, Script outputScript);
     TransactionOutput(uint64_t send_amount, char address[]);
+    TransactionOutput(Script outputScript, uint64_t send_amount);
+    TransactionOutput(char address[], uint64_t send_amount);
     TransactionOutput(TransactionOutput const &other);
     TransactionOutput &operator=(TransactionOutput const &other);
     // TransactionOutput(Stream & s){ parse(s); };
@@ -291,6 +300,7 @@ public:
     size_t length(); // length of the serialized bytes sequence
     size_t serialize(Stream &s); // serialize to Stream
     size_t serialize(uint8_t array[], size_t len); // serialize to array
+    operator String();
 };
 
 class Transaction{
@@ -319,6 +329,7 @@ public:
     // populates hash with transaction hash
     int hash(uint8_t hash[32]);
     int id(uint8_t id_arr[32]); // returns id of the transaction (reverse of hash)
+    bool isSegwit();
 
     // populates hash with data for signing certain input with particular scriptPubkey
     int sigHash(uint8_t inputIndex, Script scriptPubKey, uint8_t hash[32]);
@@ -331,6 +342,7 @@ public:
     // String sign(HDPrivateKey key);
     // TODO: copy()
     // TODO: sort() - bip69, Lexicographical Indexing of Transaction Inputs and Outputs
+    operator String();
 };
 
 #endif /* __BITCOIN_H__BDDNDVJ300 */

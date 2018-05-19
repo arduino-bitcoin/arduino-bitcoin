@@ -216,9 +216,8 @@ int PublicKey::segwitAddress(char address[], size_t len){
     int l = sec(sec_arr, sizeof(sec_arr));
     hash160(sec_arr, l, hash);
     char prefix[] = "bc";
-    if(testnet){ // TODO: too ugly, refactor
-        prefix[0] = 't';
-        prefix[1] = 'b';
+    if(testnet){
+        memcpy(prefix, "tb", 2);
     }
     segwit_addr_encode(address, prefix, 0, hash, 20);
     return 76;

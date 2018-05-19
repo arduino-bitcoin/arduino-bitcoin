@@ -9,11 +9,7 @@ void setup() {
   // Single private key for testnet
   PrivateKey privateKey("cQwxqQwCwGoirnTkVnNt4XqJuEv24HYBvVWCTLtL5g1kx9Q1AEhE");
 
-  // previous transaction we are spending
-  byte prevId[32];
-  fromHex("c497cec7ca71466478833d27177299d01a72cb1db92278c68e2c5ee1a7560121", prevId, 32);
-  int prevIndex = 1; // second output
-  TransactionInput txIn(prevId, prevIndex);
+  TransactionInput txIn("c497cec7ca71466478833d27177299d01a72cb1db92278c68e2c5ee1a7560121", 1);
 
   // addresses to send bitcoins
   char destinationAddress[] = "mqqXkvzA5y1MgvWTaHWXFgJCWDA959cN1K";

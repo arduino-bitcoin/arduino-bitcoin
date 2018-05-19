@@ -40,6 +40,19 @@ TransactionInput::TransactionInput(byte prev_id[32], uint32_t prev_index){
     sequence = sequence_number;
     // TransactionInput(prev_id, prev_index, script, sequence_number);
 }
+TransactionInput::TransactionInput(char prev_id_hex[], uint32_t prev_index){
+    Script script;
+    uint32_t sequence_number = 0xffffffff;
+    uint8_t prev_id[32];
+    fromHex(prev_id_hex, prev_id, sizeof(prev_id));
+    for(int i=0; i<32; i++){
+        hash[i] = prev_id[31-i];
+    }
+    outputIndex = prev_index;
+    scriptSig = script;
+    sequence = sequence_number;
+    // TransactionInput(prev_id, prev_index, script, sequence_number);
+}
 size_t TransactionInput::parse(Stream &s){
     size_t len = 0;
     len += s.readBytes(hash, 32);
@@ -99,6 +112,9 @@ size_t TransactionInput::serialize(uint8_t array[], size_t len, Script script){
 size_t TransactionInput::serialize(uint8_t array[], size_t len){
     return serialize(array, len, scriptSig);
 }
+bool TransactionInput::isSegwit(){
+    return (witnessProgram.length() > 0);
+}
 TransactionInput::TransactionInput(TransactionInput const &other){
     memcpy(hash, other.hash, 32);
     outputIndex = other.outputIndex;
@@ -112,6 +128,16 @@ TransactionInput &TransactionInput::operator=(TransactionInput const &other){
     sequence = other.sequence;
     return *this; 
 };
+TransactionInput::operator String(){ 
+    size_t len = length();
+    uint8_t * ser;
+    ser = (uint8_t *)calloc(len, sizeof(uint8_t));
+    serialize(ser, len);
+    String s = toHex(ser, len);
+    free(ser);
+    return s;
+};
+
 
 
 TransactionOutput::TransactionOutput(void){
@@ -124,6 +150,15 @@ TransactionOutput::TransactionOutput(uint64_t send_amount, Script outputScript){
     scriptPubKey = outputScript;
 }
 TransactionOutput::TransactionOutput(uint64_t send_amount, char address[]){
+    amount = send_amount;
+    Script sc(address);
+    scriptPubKey = sc;
+}
+TransactionOutput::TransactionOutput(Script outputScript, uint64_t send_amount){
+    amount = send_amount;
+    scriptPubKey = outputScript;
+}
+TransactionOutput::TransactionOutput(char address[], uint64_t send_amount){
     amount = send_amount;
     Script sc(address);
     scriptPubKey = sc;
@@ -176,7 +211,15 @@ TransactionOutput &TransactionOutput::operator=(TransactionOutput const &other){
     scriptPubKey = other.scriptPubKey;
     return *this; 
 };
-
+TransactionOutput::operator String(){ 
+    size_t len = length();
+    uint8_t * ser;
+    ser = (uint8_t *)calloc(len, sizeof(uint8_t));
+    serialize(ser, len);
+    String s = toHex(ser, len);
+    free(ser);
+    return s;
+};
 
 // TODO: copy constructor, = operator
 Transaction::Transaction(void){
@@ -192,6 +235,7 @@ Transaction::~Transaction(void){
     }
 }
 size_t Transaction::parse(Stream &s){
+    bool is_segwit = false;
     if(inputsNumber > 0){
         free(txIns);
     }
@@ -208,9 +252,18 @@ size_t Transaction::parse(Stream &s){
     }
 
     // check if I can get inputs len (not with available() because of timeout)
-    l = s.peek();
+    l = s.peek(); // do I need all this stuff?
     if(l < 0){
         return 0;
+    }
+    if(l == 0x00){ // segwit marker
+        uint8_t marker = s.read();
+        uint8_t flag = s.read();
+        len += 2;
+        if(flag != 0x01){
+            return 0; // wrong segwit flag
+        }
+        is_segwit = true;
     }
     inputsNumber = readVarInt(s);
     len += lenVarInt(inputsNumber);
@@ -244,6 +297,22 @@ size_t Transaction::parse(Stream &s){
         }
     }
 
+    if(is_segwit){
+        for(int i=0; i<inputsNumber; i++){
+            Script witness_program;
+            size_t numElements = readVarInt(s);
+            uint8_t arr[9];
+            uint8_t l = writeVarInt(numElements, arr, sizeof(arr));
+            witness_program.push(arr, l);
+            for(int j = 0; j < numElements; j++){
+                Script element;
+                element.parse(s);
+                witness_program.push(element);
+            }
+            txIns[i].witnessProgram = witness_program;
+        }
+    }
+
     l = s.readBytes(arr, 4);
     if(l != 4){
         return 0;
@@ -257,6 +326,14 @@ size_t Transaction::parse(Stream &s){
 size_t Transaction::parse(byte raw[], size_t len){
     ByteStream s(raw, len);
     return parse(s);
+}
+bool Transaction::isSegwit(){
+    for(int i=0; i<inputsNumber; i++){
+        if(txIns[i].isSegwit()){
+            return true;
+        }
+    }
+    return false;
 }
 uint8_t Transaction::addInput(TransactionInput txIn){
     inputsNumber ++;
@@ -288,14 +365,26 @@ size_t Transaction::length(){
     for(int i=0; i<outputsNumber; i++){
         len += txOuts[i].length();
     }
+    if(isSegwit()){
+        len += 2; // marker + flag
+        for(int i=0; i<inputsNumber; i++){
+            len += txIns[i].witnessProgram.scriptLen;
+        }
+    }
     return len;
 }
 size_t Transaction::serialize(Stream &s){
+    bool is_segwit = isSegwit();
     uint8_t arr[4];
     size_t len = 0;
     intToLittleEndian(version, arr, 4);
     s.write(arr, 4);
     len += 4;
+    if(is_segwit){
+        len += 2;
+        uint8_t arr[2] = { 0, 1 };
+        s.write(arr, 2); // marker + flag
+    }
     writeVarInt(inputsNumber, s);
     len += lenVarInt(inputsNumber);
     for(int i=0; i<inputsNumber; i++){
@@ -306,6 +395,12 @@ size_t Transaction::serialize(Stream &s){
     for(int i=0; i<outputsNumber; i++){
         len += txOuts[i].serialize(s);
     }
+    if(is_segwit){
+        for(int i=0; i<inputsNumber; i++){
+            s.write(txIns[i].witnessProgram.script, txIns[i].witnessProgram.scriptLen);
+            len += txIns[i].witnessProgram.scriptLen;
+        }
+    }
     intToLittleEndian(locktime, arr, 4);
     s.write(arr, 4);
     len += 4;
@@ -315,9 +410,15 @@ size_t Transaction::serialize(uint8_t array[], size_t len){
     if(len < length()){
         return 0;
     }
+    bool is_segwit = isSegwit();
     size_t l = 0;
     intToLittleEndian(version, array, 4);
     l += 4;
+    if(is_segwit){
+        array[l] = 0; // marker
+        array[l+1] = 1; // flag
+        l += 2;
+    }
     writeVarInt(inputsNumber, array+l, len-l);
     l += lenVarInt(inputsNumber);
     for(int i=0; i<inputsNumber; i++){
@@ -327,6 +428,12 @@ size_t Transaction::serialize(uint8_t array[], size_t len){
     l += lenVarInt(outputsNumber);
     for(int i=0; i<outputsNumber; i++){
         l += txOuts[i].serialize(array+l, len-l);
+    }
+    if(is_segwit){
+        for(int i=0; i<inputsNumber; i++){
+            memcpy(array+l, txIns[i].witnessProgram.script, txIns[i].witnessProgram.scriptLen);
+            l += txIns[i].witnessProgram.scriptLen;
+        }
     }
     intToLittleEndian(locktime, array+l, 4);
     l += 4;
@@ -415,25 +522,13 @@ Signature Transaction::signInput(uint8_t inputIndex, PrivateKey pk, Script redee
 Signature Transaction::signInput(uint8_t inputIndex, PrivateKey pk){
     PublicKey pubkey = pk.publicKey();
     return signInput(inputIndex, pk, pubkey.script());
-    // uint8_t h[32];
-    // sigHash(inputIndex, pubkey.script(), h);
-    // Signature sig = pk.sign(h);
-    // uint8_t der[80] = { 0 };
-    // size_t derLen = sig.der(der, sizeof(der));
-    // der[derLen] = 1;
-    // derLen++;
-
-    // uint8_t sec[65] = { 0 };
-    // size_t secLen = pubkey.sec(sec, sizeof(sec));
-
-    // uint8_t lenArr[2] = { secLen + derLen + 2, derLen };
-    // ByteStream s;
-    // s.write(lenArr, 2);
-    // s.write(der, derLen);
-    // s.write(secLen);
-    // s.write(sec, secLen);
-    // Script sc;
-    // sc.parse(s);
-    // txIns[inputIndex].scriptSig = sc;
-    // return sig;
 }
+Transaction::operator String(){ 
+    size_t len = length();
+    uint8_t * ser;
+    ser = (uint8_t *)calloc(len, sizeof(uint8_t));
+    serialize(ser, len);
+    String s = toHex(ser, len);
+    free(ser);
+    return s;
+};
