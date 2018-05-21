@@ -8,20 +8,21 @@ void setup() {
 
   // Single private key for testnet
   PrivateKey privateKey("cQwxqQwCwGoirnTkVnNt4XqJuEv24HYBvVWCTLtL5g1kx9Q1AEhE");
+  Serial.println(privateKey.address());
 
-  TransactionInput txIn("c497cec7ca71466478833d27177299d01a72cb1db92278c68e2c5ee1a7560121", 1);
+  TransactionInput txIn("fbeae5f43d76fc3035cb4190baaf8cc123dd04f11c98c8f19a8b12cb4ce90db0", 0);
 
   // addresses to send bitcoins
-  char destinationAddress[] = "mqqXkvzA5y1MgvWTaHWXFgJCWDA959cN1K";
+  char destinationAddress[] = "n3DN9cswq5jnXXUmLP3bXtR89yfDNWrie9";
   char changeAddress[36] = { 0 };
   privateKey.address(changeAddress, 35);
 
   // amounts to send
   // unsigned long can store up to 4294967295 satoshi (42.9 BTC)
   // for larger amounts use uint64_t
-  unsigned long availableAmount = 5800000; // 58 mBTC
-  unsigned long sendAmount = 2000000; // 20 mBTC
+  unsigned long availableAmount = 2000000; // 58 mBTC
   unsigned long fee = 1500;
+  unsigned long sendAmount = 1000000; // 20 mBTC
   unsigned long changeAmount = availableAmount - sendAmount - fee;
 
   TransactionOutput txOutDestination(sendAmount, destinationAddress);
@@ -52,6 +53,9 @@ void setup() {
     Serial.println(tx.txIns[i].scriptSig);
     Serial.print("\tSequence:      ");
     Serial.println(tx.txIns[i].sequence);
+    if(tx.isSegwit()){
+      Serial.println("\tSEGWIT!");
+    }
   }
   Serial.print("Outputs: ");
   Serial.println(tx.outputsNumber);
@@ -63,28 +67,19 @@ void setup() {
     Serial.println(" mBTC");
   }
 
-  Serial.print("Tx length(): ");
-  Serial.println(tx.length());
-  byte ser[255];
-  size_t l = tx.serialize(ser, sizeof(ser));
   Serial.println("Unsigned transaction:");
-  Serial.println(toHex(ser, l));
+  Serial.println(tx);
 
   // signing transaction
   Serial.println("Signing transaction...");
   Signature sig = tx.signInput(0, privateKey);
   Serial.println(sig);
 
-  Serial.print("Signed tx length(): ");
-  Serial.println(tx.length());
-  l = tx.serialize(ser, sizeof(ser));
   Serial.println("Signed transaction:");
-  Serial.println(toHex(ser, l));
+  Serial.println(tx);
 
-  uint8_t id_arr[32];
-  tx.id(id_arr);
   Serial.println("Transaction id:");
-  Serial.println(toHex(id_arr,32));
+  Serial.println(tx.id());
   
   Serial.println("Done");
 }

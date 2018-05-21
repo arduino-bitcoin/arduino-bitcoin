@@ -74,6 +74,15 @@ Script::Script(PublicKey pubkey, int type){
         script[23] = OP_EQUALVERIFY;
         script[24] = OP_CHECKSIG;
     }
+    if(type == P2WPKH){
+        scriptLen = 22;
+        script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
+        script[0] = 0x00;
+        script[1] = 20;
+        uint8_t sec_arr[65] = { 0 };
+        int l = pubkey.sec(sec_arr, sizeof(sec_arr));
+        hash160(sec_arr, l, script+2);
+    }
 }
 Script::Script(Script const &other){
     if(other.scriptLen > 0){

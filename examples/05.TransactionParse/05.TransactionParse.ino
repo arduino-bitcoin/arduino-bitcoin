@@ -55,25 +55,14 @@ void setup() {
     Serial.println(" mBTC");
   }
 
+  Serial.print("Transaction id:");
+  Serial.println(tx.id());
+  Serial.println("Raw transaction:");
   Serial.println(tx);
-//  Serial.print("Tx length(): ");
-//  Serial.println(tx.length());
-//  byte ser[255];
-//  size_t l = tx.serialize(ser, sizeof(ser));
-//  Serial.println(toHex(ser, l));
 
   byte h[32];
   tx.hash(h);
   Serial.print("Hash: ");
-  Serial.println(toHex(h, sizeof(h)));
-
-  byte arr2[] = { 0x76, 0xa9, 0x14, 0xb1, 0x28, 0xc5, 0x28, 0x84, 0xa6, 0xf4, 
-                  0x32, 0x08, 0xb0, 0xaf, 0x6d, 0x07, 0x95, 0x86, 0xd8, 0xdd, 
-                  0xee, 0xd7, 0x7c, 0x88, 0xac };
-  Script pscript(arr2, sizeof(arr2));
-  Serial.println(pscript);
-  tx.sigHash(0, pscript, h);
-  Serial.print("SigHash: ");
   Serial.println(toHex(h, sizeof(h)));
 
   Serial.println("Done!");

@@ -260,11 +260,11 @@ public:
 
     // For segwit:
     Script witnessProgram;
+    uint64_t amount = 0; // required for signing, also used for fee calculation
 
     // following information is optional, 
     // can be obtained from spending output
     Script scriptPubKey;
-    uint64_t amount = 0; // required for fee calculation
 
     bool isSegwit();
     size_t parse(Stream &s);
@@ -323,16 +323,23 @@ public:
     uint8_t addOutput(TransactionOutput txOut);
 
     size_t length(); // length of the serialized bytes sequence
+    size_t serialize(Stream &s, bool segwit); // serialize to Stream
     size_t serialize(Stream &s); // serialize to Stream
     size_t serialize(uint8_t array[], size_t len); // serialize to array
 
     // populates hash with transaction hash
     int hash(uint8_t hash[32]);
-    int id(uint8_t id_arr[32]); // returns id of the transaction (reverse of hash)
+    int id(uint8_t id_arr[32]); // populates array with id of the transaction (reverse of hash)
+    String id(); // returns hex string with id of the transaction
     bool isSegwit();
 
     // populates hash with data for signing certain input with particular scriptPubkey
     int sigHash(uint8_t inputIndex, Script scriptPubKey, uint8_t hash[32]);
+
+    int hashPrevouts(uint8_t hash[32]);
+    int hashSequence(uint8_t hash[32]);
+    int hashOutputs(uint8_t hash[32]);
+    int sigHashSegwit(uint8_t inputIndex, Script scriptPubKey, uint8_t hash[32]);
 
     // signes input and returns scriptSig with signature and public key
     Signature signInput(uint8_t inputIndex, PrivateKey pk);

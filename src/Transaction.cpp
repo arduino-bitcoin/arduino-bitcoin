@@ -113,19 +113,29 @@ size_t TransactionInput::serialize(uint8_t array[], size_t len){
     return serialize(array, len, scriptSig);
 }
 bool TransactionInput::isSegwit(){
-    return (witnessProgram.length() > 0);
+    int type = scriptPubKey.type();
+    if((type == P2WPKH) || (type == P2WSH)){
+        return true;
+    }
+    return (witnessProgram.length() > 1);
 }
 TransactionInput::TransactionInput(TransactionInput const &other){
     memcpy(hash, other.hash, 32);
     outputIndex = other.outputIndex;
     scriptSig = other.scriptSig;
     sequence = other.sequence;
+    witnessProgram = other.witnessProgram;
+    amount = other.amount;
+    scriptPubKey = other.scriptPubKey;
 }
 TransactionInput &TransactionInput::operator=(TransactionInput const &other){ 
     memcpy(hash, other.hash, 32);
     outputIndex = other.outputIndex;
     scriptSig = other.scriptSig;
     sequence = other.sequence;
+    witnessProgram = other.witnessProgram;
+    amount = other.amount;
+    scriptPubKey = other.scriptPubKey;
     return *this; 
 };
 TransactionInput::operator String(){ 
@@ -373,14 +383,13 @@ size_t Transaction::length(){
     }
     return len;
 }
-size_t Transaction::serialize(Stream &s){
-    bool is_segwit = isSegwit();
+size_t Transaction::serialize(Stream &s, bool segwit){
     uint8_t arr[4];
     size_t len = 0;
     intToLittleEndian(version, arr, 4);
     s.write(arr, 4);
     len += 4;
-    if(is_segwit){
+    if(segwit){
         len += 2;
         uint8_t arr[2] = { 0, 1 };
         s.write(arr, 2); // marker + flag
@@ -395,7 +404,7 @@ size_t Transaction::serialize(Stream &s){
     for(int i=0; i<outputsNumber; i++){
         len += txOuts[i].serialize(s);
     }
-    if(is_segwit){
+    if(segwit){
         for(int i=0; i<inputsNumber; i++){
             s.write(txIns[i].witnessProgram.script, txIns[i].witnessProgram.scriptLen);
             len += txIns[i].witnessProgram.scriptLen;
@@ -404,46 +413,27 @@ size_t Transaction::serialize(Stream &s){
     intToLittleEndian(locktime, arr, 4);
     s.write(arr, 4);
     len += 4;
-    return len;
+    return len;    
+}
+size_t Transaction::serialize(Stream &s){
+    bool is_segwit = isSegwit();
+    return serialize(s, is_segwit);
 }
 size_t Transaction::serialize(uint8_t array[], size_t len){
-    if(len < length()){
+    ByteStream s;
+    serialize(s);
+    if(s.available() > len){
         return 0;
     }
-    bool is_segwit = isSegwit();
-    size_t l = 0;
-    intToLittleEndian(version, array, 4);
-    l += 4;
-    if(is_segwit){
-        array[l] = 0; // marker
-        array[l+1] = 1; // flag
-        l += 2;
-    }
-    writeVarInt(inputsNumber, array+l, len-l);
-    l += lenVarInt(inputsNumber);
-    for(int i=0; i<inputsNumber; i++){
-        l += txIns[i].serialize(array+l, len-l);
-    }
-    writeVarInt(outputsNumber, array+l, len-l);
-    l += lenVarInt(outputsNumber);
-    for(int i=0; i<outputsNumber; i++){
-        l += txOuts[i].serialize(array+l, len-l);
-    }
-    if(is_segwit){
-        for(int i=0; i<inputsNumber; i++){
-            memcpy(array+l, txIns[i].witnessProgram.script, txIns[i].witnessProgram.scriptLen);
-            l += txIns[i].witnessProgram.scriptLen;
-        }
-    }
-    intToLittleEndian(locktime, array+l, 4);
-    l += 4;
+    size_t l = s.available();
+    s.readBytes(array, l);
     return l;
 }
 
 int Transaction::hash(uint8_t hash[32]){
     // TODO: refactor with stream hash functions
     ByteStream s;
-    serialize(s);
+    serialize(s, false);
     size_t len = s.available();
     uint8_t * arr;
     arr = (uint8_t *) calloc( len, sizeof(uint8_t));
@@ -452,13 +442,19 @@ int Transaction::hash(uint8_t hash[32]){
     free(arr);
     return 0;
 }
+
 int Transaction::id(uint8_t id_arr[32]){
-    uint8_t h[32] = { 0 };
+    uint8_t h[32];
     hash(h);
     for(int i=0; i<32; i++){ // flip
         id_arr[i] = h[31-i];
     }
     return 0;
+}
+String Transaction::id(){
+    uint8_t id_arr[32];
+    id(id_arr);
+    return toHex(id_arr, 32);
 }
 
 int Transaction::sigHash(uint8_t inputIndex, Script scriptPubKey, uint8_t hash[32]){
@@ -494,9 +490,101 @@ int Transaction::sigHash(uint8_t inputIndex, Script scriptPubKey, uint8_t hash[3
     return 0;
 }
 
+int Transaction::hashPrevouts(uint8_t hash[32]){
+    ByteStream s;
+    for(int i=0; i<inputsNumber; i++){
+        s.write(txIns[i].hash, 32);
+        uint8_t arr[4];
+        intToLittleEndian(txIns[i].outputIndex, arr, 4);
+        s.write(arr, 4);
+    }
+    size_t len = s.available();
+    uint8_t * buf;
+    buf = (uint8_t *) calloc( len, sizeof(uint8_t));
+    s.readBytes(buf, len);
+    doubleSha(buf, len, hash);
+    free(buf);
+    return 0;
+}
+
+int Transaction::hashSequence(uint8_t hash[32]){
+    ByteStream s;
+    for(int i=0; i<inputsNumber; i++){
+        uint8_t arr[4];
+        intToLittleEndian(txIns[i].sequence, arr, 4);
+        s.write(arr, 4);
+    }
+    size_t len = s.available();
+    uint8_t * buf;
+    buf = (uint8_t *) calloc( len, sizeof(uint8_t));
+    s.readBytes(buf, len);
+    doubleSha(buf, len, hash);
+    free(buf);
+    return 0;
+}
+
+int Transaction::hashOutputs(uint8_t hash[32]){
+    ByteStream s;
+    for(int i=0; i<outputsNumber; i++){
+        txOuts[i].serialize(s);
+    }
+    size_t len = s.available();
+    uint8_t * buf;
+    buf = (uint8_t *) calloc( len, sizeof(uint8_t));
+    s.readBytes(buf, len);
+    doubleSha(buf, len, hash);
+    free(buf);
+    return 0;
+}
+
+int Transaction::sigHashSegwit(uint8_t inputIndex, Script scriptPubKey, uint8_t hash[32]){
+    ByteStream s;
+    uint8_t arr[8];
+    intToLittleEndian(version, arr, 4);
+    s.write(arr, 4);
+
+    uint8_t h[32];
+    hashPrevouts(h);
+    s.write(h, 32);
+    hashSequence(h);
+    s.write(h, 32);
+
+    s.write(txIns[inputIndex].hash, 32);
+    intToLittleEndian(txIns[inputIndex].outputIndex, arr, 4);
+    s.write(arr, 4);
+    scriptPubKey.serialize(s);
+
+    intToLittleEndian(txIns[inputIndex].amount, arr, 8);
+    s.write(arr, 8);
+    intToLittleEndian(txIns[inputIndex].sequence, arr, 4);
+    s.write(arr, 4);
+
+    hashOutputs(h);
+    s.write(h, 32);
+
+    intToLittleEndian(locktime, arr, 4);
+    s.write(arr, 4);
+    uint8_t sighash[] = {1,0,0,0}; // SIGHASH_ALL
+    s.write(sighash, sizeof(sighash));
+
+    size_t len = s.available();
+    uint8_t * buf;
+    buf = (uint8_t *) calloc( len, sizeof(uint8_t));
+    s.readBytes(buf, len);
+    doubleSha(buf, len, hash);
+    free(buf);
+    return 0;
+}
+
 Signature Transaction::signInput(uint8_t inputIndex, PrivateKey pk, Script redeemScript){
     uint8_t h[32];
-    sigHash(inputIndex, redeemScript, h);
+    int type = redeemScript.type();
+    bool is_segwit = (isSegwit()) || (type == P2WPKH) || (type == P2WSH);
+    if(is_segwit){
+        sigHashSegwit(inputIndex, redeemScript, h);
+    }else{
+        sigHash(inputIndex, redeemScript, h);
+    }
     PublicKey pubkey = pk.publicKey();
     Signature sig = pk.sign(h);
     uint8_t der[80] = { 0 };
@@ -507,15 +595,30 @@ Signature Transaction::signInput(uint8_t inputIndex, PrivateKey pk, Script redee
     uint8_t sec[65] = { 0 };
     size_t secLen = pubkey.sec(sec, sizeof(sec));
 
-    uint8_t lenArr[2] = { secLen + derLen + 2, derLen };
-    ByteStream s;
-    s.write(lenArr, 2);
-    s.write(der, derLen);
-    s.write(secLen);
-    s.write(sec, secLen);
-    Script sc;
-    sc.parse(s);
-    txIns[inputIndex].scriptSig = sc;
+    if(is_segwit){
+        Script empty;
+        txIns[inputIndex].scriptSig = empty;
+
+        uint8_t lenArr[3] = { secLen + derLen + 3, 2, derLen };
+        ByteStream s;
+        s.write(lenArr, 3);
+        s.write(der, derLen);
+        s.write(secLen);
+        s.write(sec, secLen);
+        Script sc;
+        sc.parse(s);
+        txIns[inputIndex].witnessProgram = sc;
+    }else{
+        uint8_t lenArr[2] = { secLen + derLen + 2, derLen };
+        ByteStream s;
+        s.write(lenArr, 2);
+        s.write(der, derLen);
+        s.write(secLen);
+        s.write(sec, secLen);
+        Script sc;
+        sc.parse(s);
+        txIns[inputIndex].scriptSig = sc;
+    }
     return sig;
 }
 
