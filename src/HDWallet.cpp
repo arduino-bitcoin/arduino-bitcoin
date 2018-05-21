@@ -14,12 +14,21 @@
 // TODO: add yprv, zprv, uprv, vprv and store address type:
 // https://github.com/satoshilabs/slips/blob/master/slip-0132.md
 // useful tool: in https://iancoleman.io/bip39/
-
-uint8_t XPRV_MAINNET_PREFIX[4] = { 0x04, 0x88, 0xAD, 0xE4 };
-uint8_t XPRV_TESTNET_PREFIX[4] = { 0x04, 0x35, 0x83, 0x94 };
+// Bitcoin 0x0488b21e - xpub   0x0488ade4 - xprv   P2PKH or P2SH
+// Bitcoin 0x049d7cb2 - ypub   0x049d7878 - yprv   P2WPKH in P2SH
+// Bitcoin 0x0295b43f - Ypub   0x0295b005 - Yprv   P2WSH in P2SH
+// Bitcoin 0x04b24746 - zpub   0x04b2430c - zprv   P2WPKH
+// Bitcoin 0x02aa7ed3 - Zpub   0x02aa7a99 - Zprv   P2WSH
+// Bitcoin Testnet 0x043587cf - tpub   0x04358394 - tprv   P2PKH or P2SH
+// Bitcoin Testnet 0x044a5262 - upub   0x044a4e28 - uprv   P2WPKH in P2SH
+// Bitcoin Testnet 0x045f1cf6 - vpub   0x045f18bc - vprv   P2WPKH
+// Bitcoin Testnet 0x02575483 - Vpub   0x02575048 - Vprv   P2WSH
 
 uint8_t XPUB_MAINNET_PREFIX[4] = { 0x04, 0x88, 0xB2, 0x1E };
+uint8_t XPRV_MAINNET_PREFIX[4] = { 0x04, 0x88, 0xAD, 0xE4 };
+
 uint8_t XPUB_TESTNET_PREFIX[4] = { 0x04, 0x35, 0x87, 0xCF };
+uint8_t XPRV_TESTNET_PREFIX[4] = { 0x04, 0x35, 0x83, 0x94 };
 
 // TODO: make friends with PrivateKey to get secret or inherit from it
 HDPrivateKey::HDPrivateKey(void){

@@ -15,8 +15,8 @@ void sendToSegwit(){
   tx.addInput(txIn);
   tx.addOutput(txOut);
 
-//  Signature sig = tx.signInput(0, privateKey);
-//  Serial.println(tx);
+  Signature sig = tx.signInput(0, privateKey);
+  Serial.println(tx);
 }
 
 void sendSegwit(){
