@@ -160,6 +160,14 @@ size_t toBase58(const uint8_t * array, size_t arraySize, char * output, size_t o
     memset(output + l, 0, outputSize-l);
     return l;
 }
+String toBase58(const uint8_t * array, size_t arraySize){
+    size_t len = toBase58Length(array, arraySize) + 1; // +1 for null terminator
+    char * buf = (char *)malloc(len);
+    toBase58(array, arraySize, buf, len);
+    String result(buf);
+    free(buf);
+    return result;
+}
 
 size_t toBase58Check(const uint8_t * array, size_t arraySize, char * output, size_t outputSize){
     uint8_t * arr;
@@ -175,6 +183,15 @@ size_t toBase58Check(const uint8_t * array, size_t arraySize, char * output, siz
     free(arr);
     return l;
 }
+String toBase58Check(const uint8_t * array, size_t arraySize){
+    size_t len = toBase58Length(array, arraySize) + 5; // +4 checksum +1 for null terminator
+    char * buf = (char *)malloc(len);
+    toBase58Check(array, arraySize, buf, len);
+    String result(buf);
+    free(buf);
+    return result;
+}
+
 
 // TODO: add zero count, fix wrong length
 size_t fromBase58Length(const char * array, size_t arraySize){
@@ -182,10 +199,15 @@ size_t fromBase58Length(const char * array, size_t arraySize){
     return size;
 }
 
-// TODO: fix wrong size estimate, use malloc
 size_t fromBase58(const char * encoded, size_t encodedSize, uint8_t * output, size_t outputSize){
 
     memset(output, 0, outputSize);
+
+    // looking for the end of char array
+    size_t l = strlen(encoded);
+    if(l < encodedSize){
+        encodedSize = l;
+    }
     size_t size = fromBase58Length(encoded, encodedSize);
     uint8_t * tmp;
     tmp = (uint8_t *) calloc(size, sizeof(uint8_t));
@@ -204,9 +226,6 @@ size_t fromBase58(const char * encoded, size_t encodedSize, uint8_t * output, si
         char * pch = strchr(BASE58_CHARS, encoded[i]);
         if(pch!=NULL){
             val = pch - BASE58_CHARS;
-            if(val == 58){ // end of line '/0'
-              return size;
-            }
             for(size_t j = 0; j < size; j++){
                 uint16_t cur = tmp[size-j-1]*58;
                 cur += val;
@@ -234,7 +253,15 @@ size_t fromBase58(const char * encoded, size_t encodedSize, uint8_t * output, si
     return size-shift;
 }
 
-// TODO: add size check
+size_t fromBase58(String encoded, uint8_t * output, size_t outputSize){
+    size_t len = encoded.length()+1; // +1 for null terminator
+    char * arr = (char *)malloc(len);
+    encoded.toCharArray(arr, len);
+    size_t l = fromBase58(arr, len, output, outputSize);
+    free(arr);
+    return l;
+}
+
 size_t fromBase58Check(const char * encoded, size_t encodedSize, uint8_t * output, size_t outputSize){
     uint8_t * arr;
     arr = (byte *) malloc(outputSize+4);
@@ -242,7 +269,6 @@ size_t fromBase58Check(const char * encoded, size_t encodedSize, uint8_t * outpu
     if(l<4){
         return 0;
     }
-    // memcpy(arr, array, arraySize);
 
     uint8_t hash[32];
     doubleSha(arr, l-4, hash);
@@ -255,6 +281,15 @@ size_t fromBase58Check(const char * encoded, size_t encodedSize, uint8_t * outpu
     memset(arr, 0, outputSize+4); // secret should not stay in RAM
     free(arr);
     return l-4;
+}
+
+size_t fromBase58Check(String encoded, uint8_t * output, size_t outputSize){
+    size_t len = encoded.length()+1; // +1 for null terminator
+    char * arr = (char *)malloc(len);
+    encoded.toCharArray(arr, len);
+    size_t l = fromBase58Check(arr, len, output, outputSize);
+    free(arr);
+    return l;
 }
 
 /* Integer conversion */
