@@ -581,7 +581,12 @@ Signature Transaction::signInput(uint8_t inputIndex, PrivateKey pk, Script redee
     int type = redeemScript.type();
     bool is_segwit = (isSegwit()) || (type == P2WPKH) || (type == P2WSH);
     if(is_segwit){
-        sigHashSegwit(inputIndex, redeemScript, h);
+        if((type == P2WPKH) || (type == P2WSH)){
+            Script script_pubkey(pk.publicKey()); // TODO: make it based on redeemScript
+            sigHashSegwit(inputIndex, script_pubkey, h);
+        }else{
+            sigHashSegwit(inputIndex, redeemScript, h);
+        }
     }else{
         sigHash(inputIndex, redeemScript, h);
     }
@@ -596,8 +601,14 @@ Signature Transaction::signInput(uint8_t inputIndex, PrivateKey pk, Script redee
     size_t secLen = pubkey.sec(sec, sizeof(sec));
 
     if(is_segwit){
-        Script empty;
-        txIns[inputIndex].scriptSig = empty;
+        if((type == P2WPKH) || (type == P2WSH)){
+            Script script_sig;
+            script_sig.push(redeemScript);
+            txIns[inputIndex].scriptSig = script_sig;
+        }else{
+            Script empty;
+            txIns[inputIndex].scriptSig = empty;
+        }
 
         uint8_t lenArr[3] = { secLen + derLen + 3, 2, derLen };
         ByteStream s;

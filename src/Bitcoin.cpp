@@ -202,7 +202,7 @@ int PublicKey::address(char * address, size_t len){
     return toBase58Check(addr, 21, address, len);
 }
 String PublicKey::address(){
-    char addr[35] = { 0 };
+    char addr[40] = { 0 };
     address(addr, sizeof(addr));
     return String(addr);
 }
@@ -247,7 +247,7 @@ int PublicKey::nestedSegwitAddress(char address[], size_t len){
     return toBase58Check(addr, 21, address, len);
 }
 String PublicKey::nestedSegwitAddress(){
-    char addr[35] = { 0 };
+    char addr[40] = { 0 };
     nestedSegwitAddress(addr, sizeof(addr));
     return String(addr);
 }

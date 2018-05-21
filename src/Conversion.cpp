@@ -104,6 +104,7 @@ size_t toBase58(const uint8_t * array, size_t arraySize, char * output, size_t o
         zeroCount++;
     }
 
+    // TODO: refactor with real sizes
     // size estimation. 56/41 ≈ log(58)/log(256)
     size_t size = (arraySize - zeroCount) * 183 / 134 + 1;
     // size_t size = (arraySize - zeroCount) * 137 / 100 + 1;
@@ -111,13 +112,12 @@ size_t toBase58(const uint8_t * array, size_t arraySize, char * output, size_t o
         return 0;
     }
 
-    for(int i = 0; i < outputSize; i++){
-        output[i] = 0;
-    }
+    memset(output, 0, outputSize);
 
     // array copy for manipulations
     size_t bufferSize = arraySize - zeroCount;
-    uint8_t buffer[255] = { 0 };
+    uint8_t * buffer;
+    buffer = (uint8_t *)calloc(bufferSize, sizeof(uint8_t));
     for(size_t i = zeroCount; i < arraySize; i++){
         buffer[i - zeroCount] = array[i];
     }
@@ -132,6 +132,7 @@ size_t toBase58(const uint8_t * array, size_t arraySize, char * output, size_t o
         }
         output[size+zeroCount-j-1] = BASE58_CHARS[reminder];
     }
+    free(buffer);
     for (int i = 0; i < zeroCount; i++){
         output[i] = BASE58_CHARS[0];
     }
@@ -155,7 +156,9 @@ size_t toBase58(const uint8_t * array, size_t arraySize, char * output, size_t o
             output[i] = 0;
         }
     }
-    return size+zeroCount-shift;
+    size_t l = size+zeroCount-shift;
+    memset(output + l, 0, outputSize-l);
+    return l;
 }
 
 size_t toBase58Check(const uint8_t * array, size_t arraySize, char * output, size_t outputSize){

@@ -54,8 +54,8 @@ Script::Script(char * address){
         if((addr[0] == BITCOIN_MAINNET_P2SH) || (addr[0] == BITCOIN_TESTNET_P2SH)){
             scriptLen = 23;
             script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
-            script[1] = OP_HASH160;
-            script[2] = 20;
+            script[0] = OP_HASH160;
+            script[1] = 20;
             memcpy(script+2, addr+1, 20);
             script[22] = OP_EQUAL;
         }

@@ -33,8 +33,8 @@
 #define P2SH                   2
 #define P2WPKH                 3
 #define P2WSH                  4
-#define P2WPKH_IN_P2SH         5
-#define P2WSH_IN_P2SH          6
+#define P2SH_P2WPKH            5
+#define P2SH_P2WSH             6
 
 #define SIGHASH_ALL            1
 #define SIGHASH_NONE           2
