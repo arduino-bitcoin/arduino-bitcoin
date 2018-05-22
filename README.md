@@ -25,3 +25,12 @@ List of currently implemented features:
 - [Multi-signature](https://github.com/bitcoin/bips/blob/master/bip-0011.mediawiki)
 - [Native Segwit and Segwit nested in Pay-To-Script-Hash](https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki)
 - [Bech32 addresses](https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki)
+
+## Sources
+
+- Library API is inspired by [Jimmy Song's](https://github.com/jimmysong) [pybtcfork](https://github.com/jimmysong/pybtcfork) repository and his [Programming Blockchain](http://programmingblockchain.com/) seminars.
+- Elliptic curve library for microcontrollers is taken from [Kenneth MacKay](https://github.com/kmackay/micro-ecc) and slightly changed to work with Bitcoin.
+- RIPEMD-160 hashing algorithm is adapted from [authors reference implementation](https://homes.esat.kuleuven.be/~bosselae/ripemd160.html).
+- SHA-256 implementation is taken from [Steven Pearson](https://github.com/spearson78/paperwallet)
+- SHA-512 implementation is derived from [arduinolibs repository](https://github.com/rweather/arduinolibs/tree/master/libraries/Crypto)
+- Bech32 encoding/decoding for native segwit addresses is taken from [Pieter Wuille](https://github.com/sipa/bech32/tree/master/ref/c)
