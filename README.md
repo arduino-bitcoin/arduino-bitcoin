@@ -24,4 +24,4 @@ List of currently implemented features:
 - [Mnemonic codes](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki)
 - [Multi-signature](https://github.com/bitcoin/bips/blob/master/bip-0011.mediawiki)
 - [Native Segwit and Segwit nested in Pay-To-Script-Hash](https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki)
-- [Bech32 addresses](https://github.com/bitcoin/bips/blob/master/bip-0142.mediawiki)
+- [Bech32 addresses](https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki)
