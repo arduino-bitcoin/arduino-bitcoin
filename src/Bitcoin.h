@@ -72,6 +72,7 @@ public:
     Script();
     Script(uint8_t * buffer, size_t len);
     Script(char address[]); // creates script from address
+    Script(String address);
     Script(PublicKey pubkey, int type = P2PKH); // creates one of standart scripts
     Script(Script const &other);
     ~Script();
@@ -283,8 +284,10 @@ public:
     TransactionOutput();
     TransactionOutput(uint64_t send_amount, Script outputScript);
     TransactionOutput(uint64_t send_amount, char address[]);
+    TransactionOutput(uint64_t send_amount, String address);
     TransactionOutput(Script outputScript, uint64_t send_amount);
     TransactionOutput(char address[], uint64_t send_amount);
+    TransactionOutput(String address, uint64_t send_amount);
     TransactionOutput(TransactionOutput const &other);
     TransactionOutput &operator=(TransactionOutput const &other);
     // TransactionOutput(Stream & s){ parse(s); };

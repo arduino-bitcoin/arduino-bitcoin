@@ -61,6 +61,14 @@ Script::Script(char * address){
         }
     }
 }
+Script::Script(String address){
+    size_t len = address.length()+1; // +1 for null terminator
+    char * buf = (char *)calloc(len, sizeof(uint8_t));
+    address.toCharArray(buf, len);
+    Script sc(buf);
+    free(buf);
+    *this = sc;
+}
 Script::Script(PublicKey pubkey, int type){
     if(type == P2PKH){
     	scriptLen = 25;

@@ -164,11 +164,21 @@ TransactionOutput::TransactionOutput(uint64_t send_amount, char address[]){
     Script sc(address);
     scriptPubKey = sc;
 }
+TransactionOutput::TransactionOutput(uint64_t send_amount, String address){
+    amount = send_amount;
+    Script sc(address);
+    scriptPubKey = sc;
+}
 TransactionOutput::TransactionOutput(Script outputScript, uint64_t send_amount){
     amount = send_amount;
     scriptPubKey = outputScript;
 }
 TransactionOutput::TransactionOutput(char address[], uint64_t send_amount){
+    amount = send_amount;
+    Script sc(address);
+    scriptPubKey = sc;
+}
+TransactionOutput::TransactionOutput(String address, uint64_t send_amount){
     amount = send_amount;
     Script sc(address);
     scriptPubKey = sc;
