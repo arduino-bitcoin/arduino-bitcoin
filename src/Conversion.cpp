@@ -41,6 +41,28 @@ String toHex(const uint8_t * array, size_t arraySize){
     return result;
 }
 
+size_t toHex(uint8_t v, Print &s){
+    char c = (v >> 4) + '0';
+    if(c > '9'){
+        c += 'a'-'9'-1;
+    }
+    s.print(c);
+
+    c = (v & 0x0F) + '0';
+    if(c > '9'){
+        c += 'a'-'9'-1;
+    }
+    s.print(c);
+    return 2;
+}
+
+size_t toHex(const uint8_t * array, size_t arraySize, Print &s){
+    for(int i=0; i<arraySize; i++){
+        toHex(array[i], s);
+    }
+}
+
+
 uint8_t hexToVal(char c){
   if(c >= '0' && c <= '9'){
     return ((uint8_t)(c - '0')) & 0x0F;

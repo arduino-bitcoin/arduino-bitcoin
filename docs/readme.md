@@ -14,7 +14,7 @@ After installation you will see a collection of examples under `File > Examples 
 
 ### Quickstart
 
-In this guide we construct a [transaction on the testnet](https://testnet.blockchain.info/tx/15f5023a13779fcc2ca48ea538262fb9fcc2b4a74d2182c9712ad41a2cf18f50) sending 10 mBTC to address `mqSK6CUkT4b1YLpUSgA4rkB3YDr7eZKNXd`, sign it with private key and print signed raw transaction to the serial port.
+In this section we will construct a [transaction on the testnet](https://testnet.blockchain.info/tx/15f5023a13779fcc2ca48ea538262fb9fcc2b4a74d2182c9712ad41a2cf18f50) sending 10 mBTC to address `mqSK6CUkT4b1YLpUSgA4rkB3YDr7eZKNXd`, sign it with private key and print signed raw transaction to the serial port.
 
 We spend first output of the transaction with id [838395321d85119d0872efa1155bb764db24ee8231224576ef1929d8e63ae70e](https://testnet.blockchain.info/tx/838395321d85119d0872efa1155bb764db24ee8231224576ef1929d8e63ae70e).
 
@@ -80,6 +80,8 @@ void loop() {
 }
 ``` 
 
+The only thing left is to copy signed raw transaction from serial monitor and broadcast it to the network. It can be done via Bitcoin Core full client, electrum console or on one of multiple web-based block explorers, for example [blockcypher](https://live.blockcypher.com/btc-testnet/pushtx/).
+
 ## Tutorials and examples
 
 TODO: add tutorials and examples
@@ -90,7 +92,7 @@ Arduino Bitcoin library is object-oriented. Most of the things are classes. For 
 
 ### Keys
 
-- PrivateKey
+- [PrivateKey](PrivateKey/)
 - PublicKey
 - HDPrivateKey
 - HDPublicKey
@@ -103,6 +105,6 @@ Arduino Bitcoin library is object-oriented. Most of the things are classes. For 
 
 ### Other classes
 
-- Signature
+- [Signature](Signature/)
 - Script
 - Block (not implemented yet)

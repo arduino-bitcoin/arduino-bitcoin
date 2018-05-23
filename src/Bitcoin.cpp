@@ -11,115 +11,229 @@
 
 // ---------------------------------------------------------------- Signature class
 
-Signature::Signature(){}
-Signature::Signature(byte r_arr[32], byte s_arr[32]){
+Signature::Signature(){
+    memset(r, 0, 32);
+    memset(s, 0, 32);
+}
+Signature::Signature(const uint8_t r_arr[32], const uint8_t s_arr[32]){
     memcpy(r, r_arr, 32);
     memcpy(s, s_arr, 32);
 }
-// Signature::Signature(byte der[], size_t derLen){
-//     memset(r, 0, 32);
-//     memset(s, 0, 32);
-//     if(derLen < 66){
-//         return;
-//     }
-//     uint8_t rlen = der[3];
-//     uint8_t slen = der[4+rlen+1];
-//     uint8_t totlen = der[1];
-//     if( (der[0] != 0x30) || 
-//         (rlen > 33) || (rlen < 32) ||
-//         (slen > 33) || (slen < 32) ||
-//         (totlen != 2+rlen+2+slen) ||
-//         (der[2] != 0x02) ||
-//         (der[4+rlen] != 0x02)
-//         ){
-//         return;
-//     }
-//     memcpy(r, der+4+rlen-32, 32);
-//     memcpy(s, der+4+rlen+2+slen-32, 32);
-// }
-Signature::Signature(byte der[]){
+Signature::Signature(const uint8_t * der){
+    parse(der);
+}
+Signature::Signature(const uint8_t * der, size_t derLen){
+    parse(der, derLen);
+}
+Signature::Signature(Stream &s){
+    parse(s);
+}
+Signature::Signature(const char * der){
+    parseHex(der);
+}
+Signature::Signature(const String der){
+    parseHex(der);
+}
+size_t Signature::parse(const uint8_t * raw, size_t rawLen){
+    // Format: 0x30 [total-length] 0x02 [R-length] [R] 0x02 [S-length] [S]
+    // * total-length: 1-byte length descriptor of everything that follows
+    // * R-length: 1-byte length descriptor of the R value that follows.
+    // * R: arbitrary-length big-endian encoded R value. It must use the shortest
+    //   possible encoding for a positive integers (which means no null bytes at
+    //   the start, except a single one when the next byte has its highest bit set).
+    // * S-length: 1-byte length descriptor of the S value that follows.
+    // * S: arbitrary-length big-endian encoded S value. The same rules apply.
+
+    // TODO: s can't be 33 bytes long?
+
     memset(r, 0, 32);
     memset(s, 0, 32);
-    uint8_t rlen = der[3];
-    uint8_t slen = der[4+rlen+1];
-    uint8_t totlen = der[1];
-    if( (der[0] != 0x30) || 
-        (rlen > 33) || (rlen < 32) ||
-        (slen > 33) || (slen < 32) ||
-        (totlen != 2+rlen+2+slen) ||
-        (der[2] != 0x02) ||
-        (der[4+rlen] != 0x02)
-        ){
-        return;
-    }
-    memcpy(r, der+4+rlen-32, 32);
-    memcpy(s, der+4+rlen+2+slen-32, 32);
-}
 
-Signature::Signature(char * der){
-    byte sigRaw[75] = { 0 };
-    byte v1 = hexToVal(der[2]);
-    byte v2 = hexToVal(der[3]);
+    // Checking der encoding:
+
+    // Minimum size
+    if(rawLen < 9) return 0;
+
+    // A signature is of type 0x30 (compound).
+    if(raw[0] != 0x30) return 0;
+
+    // Make sure the length covers the entire signature.
+    uint8_t totLen = raw[1];
+    if(totLen > rawLen - 2) return 0;
+
+    // Maximum length
+    if(totLen > 70) return 0;
+
+    // Extract the length of the R element.
+    uint8_t lenR = raw[3];
+
+    // Make sure the length of the S element is still inside the signature.
+    if(2 + lenR >= totLen) return 0;
+
+    // Extract the length of the S element.
+    uint8_t lenS = raw[5 + lenR];
+
+    // Verify that the length of the signature matches the sum of the length
+    // of the elements.
+    if ((lenR + lenS + 4) != totLen) return 0;
+ 
+    // Check whether lenR and lenS at max 33 bytes long
+    if( (lenR > 33) || (lenS > 33)) return 0;
+
+    // Check whether the R element is an integer.
+    if (raw[2] != 0x02) return 0;
+
+    // Zero-length integers are not allowed for R.
+    if (lenR == 0) return 0;
+
+    // Negative numbers are not allowed for R.
+    if (raw[4] & 0x80) return 0;
+
+    // Null bytes at the start of R are not allowed, unless R would
+    // otherwise be interpreted as a negative number.
+    if (lenR > 1 && (raw[4] == 0x00) && !(raw[5] & 0x80)) return 0;
+
+    // Check whether the S element is an integer.
+    if (raw[lenR + 4] != 0x02) return 0;
+
+    // Zero-length integers are not allowed for S.
+    if (lenS == 0) return 0;
+
+    // Negative numbers are not allowed for S.
+    if (raw[lenR + 6] & 0x80) return 0;
+
+    // Null bytes at the start of S are not allowed, unless S would otherwise be
+    // interpreted as a negative number.
+    if (lenS > 1 && (raw[lenR + 6] == 0x00) && !(raw[lenR + 7] & 0x80)) return 0;
+
+    // Copying to r and s arrays
+    if(lenR == 33){
+        memcpy(r, raw+5, 32);
+    }else{
+        memcpy(r+32-lenR, raw+4, lenR);
+    }
+    if(lenS == 33){
+        memcpy(s, raw+lenR+7, 32);
+    }else{
+        memcpy(s+32-lenS, raw+lenR+6, lenS);
+    }
+    return totLen+2;
+}
+size_t Signature::parse(const uint8_t * raw){
+    size_t len = raw[1]+2;
+    return parse(raw, len);
+}
+size_t Signature::parse(Stream &s){
+    uint8_t arr[72];
+    arr[0] = s.read();
+    arr[1] = s.read();
+    size_t len = arr[1]+2;
+    if(len > sizeof(arr)){
+        return 0;
+    }
+    s.readBytes(arr+2, arr[1]);
+    return parse(arr, len);
+}
+size_t Signature::parseHex(const char * hex){
+    // looking for first hex char
+    size_t cur = 0;
+    char c = hex[cur];
+    while(hexToVal(c) > 0x0F){
+        if(c==0){
+            return 0;
+        }
+        cur ++;
+        c = hex[cur];
+    }
+    // getting length
+    uint8_t v1 = hexToVal(hex[cur+2]);
+    uint8_t v2 = hexToVal(hex[cur+3]);
     if( (v1 > 0x0F) || (v2 > 0x0F) ){ // invalid chars
-        Signature();
-        return;
+        return 0;
     }
     size_t derLen = (((v1 << 4) | v2)+2);
-    int len = fromHex(der, 2*derLen, sigRaw, sizeof(sigRaw));
-    if(len > 0){ // TODO: refactor, copypaste of above code
-        memset(r, 0, 32);
-        memset(s, 0, 32);
-        uint8_t rlen = sigRaw[3];
-        uint8_t slen = sigRaw[4+rlen+1];
-        uint8_t totlen = sigRaw[1];
-        if( (sigRaw[0] != 0x30) || 
-            (rlen > 33) || (rlen < 32) ||
-            (slen > 33) || (slen < 32) ||
-            (totlen != 2+rlen+2+slen) ||
-            (sigRaw[2] != 0x02) ||
-            (sigRaw[4+rlen] != 0x02)
-            ){
-            return;
-        }
-        memcpy(r, sigRaw+4+rlen-32, 32);
-        memcpy(s, sigRaw+4+rlen+2+slen-32, 32);    
-    }else{
-        Signature();
+    if(derLen > 72){
+        return 0;
     }
+    uint8_t der[72];
+    size_t l = fromHex(hex+cur, derLen*2, der, sizeof(der));
+    return parse(der, l);
 }
-
-size_t Signature::der(uint8_t * bytes, size_t len){
+size_t Signature::parseHex(const String hex){
+    size_t len = hex.length();
+    char * arr = (char *)calloc(len+1, sizeof(char));
+    hex.toCharArray(arr, len);
+    size_t l = parseHex(arr);
+    free(arr);
+    return l;
+}
+size_t Signature::der(uint8_t * bytes, size_t len) const{
     memset(bytes, 0, len);
     bytes[0] = 0x30;
-    // uint8_t totlen = 66;
     bytes[2] = 0x02;
-    uint8_t rlen = 32;
-    if(r[0] > 128){
-        rlen = 33;
+    uint8_t rlen = 33;
+    for(int i=0; i<32; i++){
+        if(r[i] > 0){
+            if(r[i] < 0x80){
+                rlen --;
+            }
+            break;
+        }else{
+            rlen--;
+        }
     }
     bytes[3] = rlen;
-    memcpy(bytes+4+rlen-32, r, 32);
+    if(rlen == 33){
+        memcpy(bytes+5, r, 32);
+    }else{
+        memcpy(bytes+4, r+32-rlen, rlen);
+    }
+
     bytes[4+rlen] = 0x02;
-    uint8_t slen = 32;
-    if(s[0] > 128){
-        slen = 33;
+    uint8_t slen = 33;
+    for(int i=0; i<32; i++){
+        if(s[i] > 0){
+            if(s[i] < 0x80){
+                slen --;
+            }
+            break;
+        }else{
+            slen--;
+        }
     }
     bytes[4+rlen+1] = slen;
-    memcpy(bytes+4+rlen+2+slen-32, s, 32);
+    if(slen == 33){
+        memcpy(bytes+4+rlen+3, s, 32);
+    }else{
+        memcpy(bytes+4+rlen+2, s+32-slen, slen);
+    }
     bytes[1] = 4+rlen+2+slen-2;
     return 4+rlen+2+slen;
 }
-void Signature::bin(byte arr[64]){
+size_t Signature::der(Stream &s) const{
+    uint8_t arr[72];
+    size_t l = der(arr, sizeof(arr));
+    s.write(arr, l);
+    return l;
+}
+void Signature::bin(uint8_t arr[64]) const{
     memcpy(arr, r, 32);
     memcpy(arr+32, s, 32);
 }
-Signature::operator String(){ 
-    uint8_t arr[70] = { 0 };
+size_t Signature::printTo(Print& p) const{
+    uint8_t arr[72];
+    size_t l = der(arr, sizeof(arr));
+    toHex(arr, l, p);
+    return l;
+}
+Signature::operator String(){
+    uint8_t arr[72] = { 0 };
     int len = der(arr, sizeof(arr));
     return toHex(arr, len); 
 };
 
 // ---------------------------------------------------------------- PublicKey class
+
 PublicKey::PublicKey(){}
 PublicKey::PublicKey(uint8_t pubkeyArr[], bool use_compressed, bool use_testnet){
     memcpy(point, pubkeyArr, 64);
@@ -265,12 +379,13 @@ PublicKey::operator String(){
     int len = sec(arr, sizeof(arr));
     return toHex(arr, len); 
 };
-bool PublicKey::isValid(){
+bool PublicKey::isValid() const{
     const struct uECC_Curve_t * curve = uECC_secp256k1();
     return uECC_valid_public_key(point, curve);
 }
 
 // ---------------------------------------------------------------- PrivateKey class
+
 PrivateKey::PrivateKey(void){
     memset(secret, 0xFF, 32); // empty key
 }
@@ -344,14 +459,21 @@ int PrivateKey::fromWIF(const char wifArr[]){
     return fromWIF(wifArr, strlen(wifArr));
 }
 // TODO: check if > N ???
-bool PrivateKey::isValid(){
-    bool valid = false;
+bool PrivateKey::isValid() const{
+    // if all zeros -> not valid
+    for(int i=0; i<31; i++){
+        if(secret[i] != 0){
+            break;
+        }
+        return false;
+    }
+    // if all 0xff -> not valid
     for(int i=0; i<31; i++){
         if(secret[i] != 0xFF){
-            valid = true;
+            return true;
         }
     }
-    return valid;
+    return false;
 }
 
 PublicKey PrivateKey::publicKey(){
@@ -391,14 +513,8 @@ Signature PrivateKey::sign(byte hash[32]){
     return sig;
 }
 
-// TODO: refactor with memcmp
 bool PrivateKey::operator==(const PrivateKey& other) const{
-    for(int i = 0; i < 32; i++){
-        if(secret[i] != other.secret[i]){
-            return false;
-        }
-    }
-    return (testnet == other.testnet) && (compressed == other.compressed);
+    return (testnet == other.testnet) && (compressed == other.compressed) && (memcmp(secret, other.secret, 32) == 0);
 }
 // secret > N can be used for codes like EMPTY_KEY, INVALID_KEY etc
 bool PrivateKey::operator==(const int& other) const{

@@ -42,7 +42,11 @@ void setup() {
   }else{
     Serial.println("Signature is NOT valid");
   }
-
+  if(sig==parsedSig){
+    Serial.println("Signatures are identical");
+  }else{
+    Serial.println("Signatures are different");
+  }
 }
 
 void loop() {

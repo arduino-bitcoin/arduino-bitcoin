@@ -42,20 +42,45 @@
 
 
 class PublicKey; // forward definition
+
 /*
     Signature class.
+    Reference: https://github.com/bitcoin/bips/blob/master/bip-0066.mediawiki
 */
-class Signature{
-        uint8_t r[32];
-        uint8_t s[32];
-    public:
-        Signature();
-        Signature(byte r_arr[32], byte s_arr[32]);
-        Signature(byte der[]); // parses binary array
-        Signature(char * der);
-        size_t der(uint8_t * bytes, size_t len);
-        void bin(byte arr[64]); // 64-byte array <r[32]><s[32]>
-        operator String();
+class Signature : public Printable{
+private:
+    uint8_t r[32];
+    uint8_t s[32];
+public:
+    Signature();
+    Signature(const uint8_t r_arr[32], const uint8_t s_arr[32]);
+    Signature(const uint8_t * der, size_t derLen);            // parses raw array
+    Signature(const uint8_t * der);                           // parses raw array
+    Signature(Stream &s);                                     // parses raw array from Stream
+    explicit Signature(const char * der);                     // parses hex string
+    Signature(const String der);                              // parses String
+
+    size_t der(uint8_t * arr, size_t len) const; // encodes signature in der format and writes it to array
+    size_t der(Stream &s) const; // writes signature in der encoding to stream
+    void bin(uint8_t arr[64]) const; // populates array with <r[32]><s[32]>
+
+    size_t parse(const uint8_t * raw, size_t rawLen);         // parses raw array
+    size_t parse(const uint8_t * raw);                        // parses raw array
+    size_t parse(Stream &s);                                  // parses raw array from Stream
+    size_t parseHex(const char * hex);                        // parses hex string
+    size_t parseHex(const String hex);                        // parses String
+    size_t parseHex(Stream &s);                               // parses hex string from Stream
+
+    size_t serialize(uint8_t * arr, size_t len) const{ return der(arr, len); };
+    size_t serialize(Stream &s) const{ return der(s); };
+
+    size_t printTo(Print& p) const; // allows to print signature to  Serial and other streams
+
+    // operators override
+    operator String(); // conversion to string
+    explicit operator bool() const{ uint8_t arr[32] = { 0 }; return !((memcmp(r, arr, 32) == 0) && (memcmp(s, arr, 32)==0)); };
+    bool operator==(const Signature& other) const{ uint8_t arr[64]; other.bin(arr); return (memcmp(arr, r, 32) == 0) && (memcmp(arr+32, s, 32) == 0); };
+    bool operator!=(const Signature& other) const{ return !operator==(other); };
 };
 
 /* 
@@ -123,9 +148,10 @@ class PublicKey{
         int nestedSegwitAddress(char * address, size_t len);
         String nestedSegwitAddress();
         bool verify(Signature sig, byte hash[32]);
-        bool isValid();
+        bool isValid() const;
         Script script(int type = P2PKH);
         operator String();
+        explicit operator bool() const { return isValid(); };
 };
 
 /*
@@ -146,7 +172,7 @@ class PrivateKey{
         PrivateKey(const String wifString);
         ~PrivateKey();
 
-        bool isValid();
+        bool isValid() const;
 
         bool compressed;    // set to true if you want to use compressed public key format
         bool testnet;       // set to true for testnet
@@ -173,7 +199,7 @@ class PrivateKey{
         bool operator!=(const int& other) const;
         PrivateKey& operator= (const char * s) { this->fromWIF(s); return *this; }
         operator String(){ return wif(); };
-
+        explicit operator bool() const { return isValid(); };
 };
 
 /*

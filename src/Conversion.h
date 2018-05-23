@@ -24,6 +24,8 @@ size_t fromBase58Check(String encoded, uint8_t * output, size_t outputSize);
 
 size_t toHex(const uint8_t * array, size_t arraySize, char * output, size_t outputSize);
 String toHex(const uint8_t * array, size_t arraySize);
+size_t toHex(uint8_t v, Print &s); // printing single hex value to Print
+size_t toHex(const uint8_t * array, size_t arraySize, Print &s); // printing array in hex Print
 
 size_t fromHex(const char hex[], byte array[], size_t arraySize);
 size_t fromHex(const char hex[], size_t hexLen, byte array[], size_t arraySize);
