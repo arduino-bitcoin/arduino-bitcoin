@@ -49,7 +49,7 @@ uint64_t readVarInt(Stream &s);
 size_t writeVarInt(uint64_t num, byte array[], size_t arraySize);
 size_t writeVarInt(uint64_t num, Stream &s);
 
-/* Stream convertors */
+/* Stream converters */
 
 /* ByteStream class
    Converts an array of bytes to stream of bytes.

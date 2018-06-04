@@ -44,7 +44,7 @@ size_t Signature::parse(const uint8_t * raw, size_t rawLen){
     // * S-length: 1-byte length descriptor of the S value that follows.
     // * S: arbitrary-length big-endian encoded S value. The same rules apply.
 
-    // TODO: s can't be 33 bytes long?
+    // TODO: s can't be 33 bytes long? I think, no.
 
     memset(r, 0, 32);
     memset(s, 0, 32);

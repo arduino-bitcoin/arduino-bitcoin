@@ -2,14 +2,14 @@
 
 ## Description
 
-Signature stores `R` and `S` values obtained from [elliptic curve digital signature algorithm](https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm). Signatures are returned by functions like `PrivateKey.sign()` or `Transaction.signInput()`. Signature can be verified with `PublicKey.verify()` method. In Bitcoin signatures are serialized in DER encoding. If you pass `Signature` to `Serial` or any other `Stream` (like display or file on SD card) it will be printed in hex format in DER representation.
+Stores `R` and `S` values obtained from [elliptic curve digital signature algorithm](https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm). Signatures are returned by functions like `PrivateKey.sign()` or `Transaction.signInput()` and can be verified with `PublicKey.verify()`. In Bitcoin signatures are serialized in DER encoding. If you pass `Signature` to the `print()` method of `Serial` or any other `Stream` object (like display or file on SD card) it will be printed in hex format in DER representation.
 
-> In Bitcoin transactions signatures are usually serialized with SIGHASH byte at the end. SIGHASH is not a member of this class, so don't forget to include it when necessary.
+> In Bitcoin transactions signatures are usually followed by `SIGHASH` byte. `SIGHASH` is not a member of this class, so don't forget to include it when necessary.
 
 ## Functions
 
 - [Signature( )](Signature.md)
-- [if](if.md) (Signature)
+- [if](if.md) (signature)
 - [parse( )](parse.md)
 - [parseHex( )](parseHex.md)
 - [der( )](der.md)

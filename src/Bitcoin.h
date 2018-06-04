@@ -52,7 +52,7 @@ private:
     uint8_t r[32];
     uint8_t s[32];
 public:
-    Signature();
+    Signature(); // empty constructor 
     Signature(const uint8_t r_arr[32], const uint8_t s_arr[32]);
     Signature(const uint8_t * der, size_t derLen);            // parses raw array
     Signature(const uint8_t * der);                           // parses raw array
@@ -60,25 +60,40 @@ public:
     explicit Signature(const char * der);                     // parses hex string
     Signature(const String der);                              // parses String
 
-    size_t der(uint8_t * arr, size_t len) const; // encodes signature in der format and writes it to array
-    size_t der(Stream &s) const; // writes signature in der encoding to stream
-    void bin(uint8_t arr[64]) const; // populates array with <r[32]><s[32]>
+    // encodes signature in der format and writes it to array or stream
+    size_t der(uint8_t * arr, size_t len) const;              // encodes signature in der format and writes it to array
+    size_t der(Stream &s) const;                              // writes signature in der encoding to stream
+    
+    // populates array with <r[32]><s[32]>
+    void bin(uint8_t arr[64]) const;
 
-    size_t parse(const uint8_t * raw, size_t rawLen);         // parses raw array
-    size_t parse(const uint8_t * raw);                        // parses raw array
+    // parses signature from byte array or stream
+    size_t parse(const uint8_t * der, size_t derLen);         // parses raw array
+    size_t parse(const uint8_t * der);                        // parses raw array
     size_t parse(Stream &s);                                  // parses raw array from Stream
+
+    // parses der-encoded signature in hex format from char array, String or Stream
     size_t parseHex(const char * hex);                        // parses hex string
     size_t parseHex(const String hex);                        // parses String
     size_t parseHex(Stream &s);                               // parses hex string from Stream
 
+    // the same as der()
     size_t serialize(uint8_t * arr, size_t len) const{ return der(arr, len); };
     size_t serialize(Stream &s) const{ return der(s); };
 
-    size_t printTo(Print& p) const; // allows to print signature to  Serial and other streams
+    // Prints der-encoded signature in hex format to any stream / display / file
+    // For example allow to do Serial.print(signature)
+    size_t printTo(Print& p) const;
 
-    // operators override
-    operator String(); // conversion to string
+    // Operators overloading
+
+    // String conversion
+    operator String();
+
+    // Bool conversion. Allows to use if(signature) construction. Makes sense to use after parsing or constructing from der array.
     explicit operator bool() const{ uint8_t arr[32] = { 0 }; return !((memcmp(r, arr, 32) == 0) && (memcmp(s, arr, 32)==0)); };
+
+    // Two signatures are equal if R and S are the same
     bool operator==(const Signature& other) const{ uint8_t arr[64]; other.bin(arr); return (memcmp(arr, r, 32) == 0) && (memcmp(arr+32, s, 32) == 0); };
     bool operator!=(const Signature& other) const{ return !operator==(other); };
 };
@@ -192,7 +207,7 @@ class PrivateKey{
         int nestedSegwitAddress(char address[], size_t len);
         String nestedSegwitAddress();
 
-        // operators override
+        // operators overloading
         bool operator==(const PrivateKey& other) const;
         bool operator==(const int& other) const;
         bool operator!=(const PrivateKey& other) const;
