@@ -106,5 +106,22 @@ Arduino Bitcoin library is object-oriented. Most of the things are classes. For 
 ### Other classes
 
 - [Signature](Signature/readme.md)
-- Script
+- [Script](Script/readme.md)
 - Block (not implemented yet)
+
+### Helper functions
+
+#### Hashing
+
+- rmd160()
+- sha256()
+- hash160()
+- doubleSha()
+- sha512()
+- sha512Hmac()
+
+#### Conversion
+
+- toHex()
+- fromHex()
+- ByteStream class

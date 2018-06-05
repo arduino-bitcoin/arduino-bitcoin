@@ -44,6 +44,14 @@ serialize	KEYWORD2
 bin	KEYWORD2
 der	KEYWORD2
 
+type	KEYWORD2
+length	KEYWORD2
+scriptLength	KEYWORD2
+serializeScript	KEYWORD2
+push	KEYWORD2
+scriptPubkey	KEYWORD2
+address	KEYWORD2
+
 pow	KEYWORD2
 sign	KEYWORD2
 fromSeed	KEYWORD2
@@ -52,7 +60,6 @@ xpub	KEYWORD2
 xprv	KEYWORD2
 child	KEYWORD2
 hardenedChild	KEYWORD2
-address	KEYWORD2
 segwitAddress	KEYWORD2
 nestedSegwitAddress	KEYWORD2
 parse	KEYWORD2
@@ -61,7 +68,6 @@ publicKey	KEYWORD2
 sec	KEYWORD2
 fromHex	KEYWORD2
 toHex	KEYWORD2
-script	KEYWORD2
 
 littleEndianToInt	KEYWORD2
 intToLittleEndian	KEYWORD2
@@ -84,6 +90,7 @@ sigHash	KEYWORD2
 #######################################
 
 PRIME	LITERAL1
+
 P2PKH	LITERAL1
 P2SH	LITERAL1
 P2WPKH	LITERAL1
@@ -93,7 +100,6 @@ P2SH_P2WSH	LITERAL1
 SIGHASH_ALL	LITERAL1
 SIGHASH_NONE	LITERAL1
 SIGHASH_SINGLE	LITERAL1
-
 
 ######################################
 # Opcodes (LITERAL1)

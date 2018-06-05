@@ -12,7 +12,7 @@ If a non-hex symbol is met before parsing is complete, it will fail and return `
 
 `signature.parseHex(string)`
 
-`signature.parseHex(stream)`
+`signature.parseHex(stream)` (not implemented yet)
 
 ## Parameters
 

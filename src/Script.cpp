@@ -5,16 +5,21 @@
 #include "OpCodes.h"
 #include "utility/segwit_addr.h"
 
+#define MAX_SCRIPT_SIZE 10000
+
 Script::Script(void){
     scriptLen = 0;
-    script = NULL;
+    scriptArray = NULL;
 }
-Script::Script(uint8_t * buffer, size_t len){
+Script::Script(const uint8_t * buffer, size_t len){
+    if(len > MAX_SCRIPT_SIZE){
+        return;
+    }
 	scriptLen = len;
-    script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
-    memcpy(script, buffer, scriptLen);
+    scriptArray = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
+    memcpy(scriptArray, buffer, scriptLen);
 }
-Script::Script(char * address){
+Script::Script(const char * address){
     uint8_t addr[21];
     size_t len = strlen(address);
     if(len > 100){ // very wrong address
@@ -32,10 +37,10 @@ Script::Script(char * address){
             return;
         }
         scriptLen = prog_len + 2;
-        script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
-        script[0] = ver;
-        script[1] = prog_len; // varint?
-        memcpy(script+2, prog, prog_len);
+        scriptArray = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
+        scriptArray[0] = ver;
+        scriptArray[1] = prog_len; // varint?
+        memcpy(scriptArray+2, prog, prog_len);
     }else{ // legacy or nested segwit
         int l = fromBase58Check(address, len, addr, sizeof(addr));
         if(l != 21){ // either wrong checksum or wierd address
@@ -43,25 +48,25 @@ Script::Script(char * address){
         }
         if((addr[0] == BITCOIN_MAINNET_P2PKH) || (addr[0] == BITCOIN_TESTNET_P2PKH)){
             scriptLen = 25;
-            script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
-            script[0] = OP_DUP;
-            script[1] = OP_HASH160;
-            script[2] = 20;
-            memcpy(script+3, addr+1, 20);
-            script[23] = OP_EQUALVERIFY;
-            script[24] = OP_CHECKSIG;
+            scriptArray = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
+            scriptArray[0] = OP_DUP;
+            scriptArray[1] = OP_HASH160;
+            scriptArray[2] = 20;
+            memcpy(scriptArray+3, addr+1, 20);
+            scriptArray[23] = OP_EQUALVERIFY;
+            scriptArray[24] = OP_CHECKSIG;
         }
         if((addr[0] == BITCOIN_MAINNET_P2SH) || (addr[0] == BITCOIN_TESTNET_P2SH)){
             scriptLen = 23;
-            script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
-            script[0] = OP_HASH160;
-            script[1] = 20;
-            memcpy(script+2, addr+1, 20);
-            script[22] = OP_EQUAL;
+            scriptArray = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
+            scriptArray[0] = OP_HASH160;
+            scriptArray[1] = 20;
+            memcpy(scriptArray+2, addr+1, 20);
+            scriptArray[22] = OP_EQUAL;
         }
     }
 }
-Script::Script(String address){
+Script::Script(const String address){
     size_t len = address.length()+1; // +1 for null terminator
     char * buf = (char *)calloc(len, sizeof(uint8_t));
     address.toCharArray(buf, len);
@@ -69,38 +74,44 @@ Script::Script(String address){
     free(buf);
     *this = sc;
 }
-Script::Script(PublicKey pubkey, int type){
+Script::Script(const PublicKey pubkey, int type){
     if(type == P2PKH){
     	scriptLen = 25;
-    	script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
-        script[0] = OP_DUP;
-        script[1] = OP_HASH160;
-        script[2] = 20;
+    	scriptArray = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
+        scriptArray[0] = OP_DUP;
+        scriptArray[1] = OP_HASH160;
+        scriptArray[2] = 20;
         uint8_t sec_arr[65] = { 0 };
         int l = pubkey.sec(sec_arr, sizeof(sec_arr));
-        hash160(sec_arr, l, script+3);
-        script[23] = OP_EQUALVERIFY;
-        script[24] = OP_CHECKSIG;
+        hash160(sec_arr, l, scriptArray+3);
+        scriptArray[23] = OP_EQUALVERIFY;
+        scriptArray[24] = OP_CHECKSIG;
     }
     if(type == P2WPKH){
         scriptLen = 22;
-        script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
-        script[0] = 0x00;
-        script[1] = 20;
+        scriptArray = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
+        scriptArray[0] = 0x00;
+        scriptArray[1] = 20;
         uint8_t sec_arr[65] = { 0 };
         int l = pubkey.sec(sec_arr, sizeof(sec_arr));
-        hash160(sec_arr, l, script+2);
+        hash160(sec_arr, l, scriptArray+2);
     }
 }
-Script::Script(Script const &other){
+Script::Script(const Script &other){
     if(other.scriptLen > 0){
 		scriptLen = other.scriptLen;
-        script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
-        memcpy(script, other.script, scriptLen);
+        scriptArray = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
+        memcpy(scriptArray, other.scriptArray, scriptLen);
     }
 }
 Script::~Script(void){
 	clear();
+}
+void Script::clear(){
+    if(scriptLen > 0){
+        free(scriptArray);
+        scriptLen = 0;
+    }
 }
 size_t Script::parse(Stream &s){
 	clear();
@@ -111,46 +122,77 @@ size_t Script::parse(Stream &s){
     scriptLen = readVarInt(s);
     size_t len = lenVarInt(scriptLen);
 
-    script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
-    len += s.readBytes(script, scriptLen);
+    if(l > MAX_SCRIPT_SIZE){
+        return 0;
+    }
+    scriptArray = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
+    len += s.readBytes(scriptArray, scriptLen);
     return len;
 }
-int Script::type(){
+size_t Script::parse(const uint8_t * buffer){
+    size_t l = readVarInt(buffer, 9); // max varint len is 9
+    if(l > MAX_SCRIPT_SIZE){
+        return 0;
+    }
+    scriptLen = l;
+    scriptArray = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
+    memcpy(scriptArray, buffer + lenVarInt(l), scriptLen);
+    return l + lenVarInt(l);
+}
+size_t Script::parse(const uint8_t * buffer, size_t len){
+    clear();
+    size_t l = readVarInt(buffer, len);
+    if((len < l + lenVarInt(l)) || (l > MAX_SCRIPT_SIZE)){
+        return 0;
+    }
+    scriptLen = l;
+    scriptArray = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
+    memcpy(scriptArray, buffer + lenVarInt(l), scriptLen);
+    return l + lenVarInt(l);
+}
+// size_t Script::parseHex(const char * hex){
+// }
+// size_t Script::parseHex(const String hex){
+// }
+// size_t Script::parseHex(Stream &s){
+// }
+
+int Script::type() const{
 	if(
 		(scriptLen == 25) && 
-		(script[0] == OP_DUP) &&
-		(script[1] == OP_HASH160) &&
-		(script[2] == 20) &&
-		(script[23] == OP_EQUALVERIFY) &&
-		(script[24] == OP_CHECKSIG)
+		(scriptArray[0] == OP_DUP) &&
+		(scriptArray[1] == OP_HASH160) &&
+		(scriptArray[2] == 20) &&
+		(scriptArray[23] == OP_EQUALVERIFY) &&
+		(scriptArray[24] == OP_CHECKSIG)
 	){
 		return P2PKH;
 	}
     if(
         (scriptLen == 23) &&
-        (script[0] == OP_HASH160) &&
-        (script[1] == 20) &&
-        (script[22] == OP_EQUAL)
+        (scriptArray[0] == OP_HASH160) &&
+        (scriptArray[1] == 20) &&
+        (scriptArray[22] == OP_EQUAL)
     ){
         return P2SH;
     }
     if(
         (scriptLen == 22) &&
-        (script[0] == 0x00) &&
-        (script[1] == 20)
+        (scriptArray[0] == 0x00) &&
+        (scriptArray[1] == 20)
     ){
         return P2WPKH;
     }
     if(
         (scriptLen == 34) &&
-        (script[0] == 0x00) &&
-        (script[1] == 32)
+        (scriptArray[0] == 0x00) &&
+        (scriptArray[1] == 32)
     ){
         return P2WSH;
     }
 	return 0;
 }
-String Script::address(bool testnet){
+String Script::address(bool testnet) const{
 	if(type() == P2PKH){
         uint8_t addr[21];
         if(testnet){
@@ -158,7 +200,7 @@ String Script::address(bool testnet){
         }else{
             addr[0] = BITCOIN_MAINNET_P2PKH;
         }
-        memcpy(addr+1, script + 3, 20);
+        memcpy(addr+1, scriptArray + 3, 20);
         char address[40] = { 0 };
         toBase58Check(addr, 21, address, sizeof(address));
         return String(address);
@@ -170,7 +212,7 @@ String Script::address(bool testnet){
         }else{
             addr[0] = BITCOIN_MAINNET_P2SH;
         }
-        memcpy(addr+1, script + 2, 20);
+        memcpy(addr+1, scriptArray + 2, 20);
         char address[40] = { 0 };
         toBase58Check(addr, 21, address, sizeof(address));
         return String(address);
@@ -181,64 +223,81 @@ String Script::address(bool testnet){
         if(testnet){
             memcpy(prefix, "tb", 2);
         }
-        segwit_addr_encode(address, prefix, script[0], script+2, script[1]);
+        segwit_addr_encode(address, prefix, scriptArray[0], scriptArray+2, scriptArray[1]);
         return String(address);
     }
 	return "Unknown address";
 }
-void Script::clear(){
-	if(scriptLen > 0){
-		free(script);
-		scriptLen = 0;
-	}
-}
-size_t Script::length(){
+size_t Script::length() const{
     return scriptLen + lenVarInt(scriptLen);
 }
-size_t Script::serialize(Stream &s){
+size_t Script::scriptLength() const{
+    return scriptLen;
+}
+size_t Script::serialize(Stream &s) const{
     size_t len = 0;
     writeVarInt(scriptLen, s);
-    s.write(script, scriptLen);
+    s.write(scriptArray, scriptLen);
     return length();
 }
-size_t Script::serialize(uint8_t array[], size_t len){
+size_t Script::serialize(uint8_t array[], size_t len) const{
     if(len < length()){
         return 0;
     }
     size_t l = lenVarInt(scriptLen);
     writeVarInt(scriptLen, array, len);
-    memcpy(array+l, script, scriptLen);
+    memcpy(array+l, scriptArray, scriptLen);
     return length();
 }
+size_t Script::serializeScript(Stream &s) const{
+    size_t len = 0;
+    s.write(scriptArray, scriptLen);
+    return scriptLength();
+}
+size_t Script::serializeScript(uint8_t array[], size_t len) const{
+    if(len < scriptLength()){
+        return 0;
+    }
+    memcpy(array, scriptArray, scriptLen);
+    return scriptLength();
+}
 size_t Script::push(uint8_t code){
+    if(scriptLen+1 > MAX_SCRIPT_SIZE){
+        clear();
+        return 0;
+    }
     if(scriptLen == 0){
         scriptLen = 1;
-        script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
+        scriptArray = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
     }else{
         scriptLen ++;
-        script = (uint8_t *) realloc( script, scriptLen * sizeof(uint8_t));
+        scriptArray = (uint8_t *) realloc( scriptArray, scriptLen * sizeof(uint8_t));
     }
-    script[scriptLen-1] = code;
+    scriptArray[scriptLen-1] = code;
     return scriptLen;
 }
-size_t Script::push(uint8_t * data, size_t len){
-    if(scriptLen == 0){
-        script = (uint8_t *) calloc( len, sizeof(uint8_t));
-    }else{
-        script = (uint8_t *) realloc( script, (scriptLen + len) * sizeof(uint8_t));
+size_t Script::push(const uint8_t * data, size_t len){
+    if(scriptLen+len > MAX_SCRIPT_SIZE){
+        clear();
+        return 0;
     }
-    memcpy(script + scriptLen, data, len);
+    if(scriptLen == 0){
+        scriptArray = (uint8_t *) calloc( len, sizeof(uint8_t));
+    }else{
+        scriptArray = (uint8_t *) realloc( scriptArray, (scriptLen + len) * sizeof(uint8_t));
+    }
+    memcpy(scriptArray + scriptLen, data, len);
     scriptLen += len;
     return scriptLen;
 }
-size_t Script::push(PublicKey pubkey){
+size_t Script::push(const PublicKey pubkey){
     uint8_t sec[65];
     uint8_t len = pubkey.sec(sec, sizeof(sec));
     push(len);
     push(sec, len);
     return scriptLen;
 }
-size_t Script::push(Signature sig){//, uint8_t sigType){
+size_t Script::push(const Signature sig){//, uint8_t sigType){
     uint8_t der[75];
     uint8_t len = sig.der(der, sizeof(der));
     push(len+1);
@@ -247,7 +306,7 @@ size_t Script::push(Signature sig){//, uint8_t sigType){
     push(SIGHASH_ALL);
     return scriptLen;
 }
-size_t Script::push(Script sc){
+size_t Script::push(const Script sc){
     uint8_t len = sc.length();
     uint8_t * tmp;
     tmp = (uint8_t *)calloc(len, sizeof(uint8_t));
@@ -256,10 +315,10 @@ size_t Script::push(Script sc){
     return scriptLen;
 }
 
-Script Script::scriptPubkey(){
+Script Script::scriptPubkey() const{
     Script sc;
     uint8_t h[20];
-    hash160(script, scriptLen, h);
+    hash160(scriptArray, scriptLen, h);
     sc.push(OP_HASH160);
     sc.push(20);
     sc.push(h, 20);
@@ -267,20 +326,28 @@ Script Script::scriptPubkey(){
     return sc;
 }
 
+size_t Script::printTo(Print& p) const{
+    if(scriptLen>0){
+        return toHex(scriptArray, scriptLen, p);
+    }else{
+        return 0;
+    }
+}
+
 Script &Script::operator=(Script const &other){ 
     clear();
     if(other.scriptLen > 0){
 		scriptLen = other.scriptLen;
-        script = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
-        memcpy(script, other.script, scriptLen);
+        scriptArray = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
+        memcpy(scriptArray, other.scriptArray, scriptLen);
     }
     return *this; 
 };
 
-Script::operator String(){ 
-	if(scriptLen>0){
-	    return toHex(script, scriptLen);
-	}else{
-		return "";
-	}
-};
+// Script::operator String(){ 
+// 	if(scriptLen>0){
+// 	    return toHex(scriptArray, scriptLen);
+// 	}else{
+// 		return "";
+// 	}
+// };

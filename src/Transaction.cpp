@@ -388,7 +388,7 @@ size_t Transaction::length(){
     if(isSegwit()){
         len += 2; // marker + flag
         for(int i=0; i<inputsNumber; i++){
-            len += txIns[i].witnessProgram.scriptLen;
+            len += txIns[i].witnessProgram.scriptLength();
         }
     }
     return len;
@@ -416,8 +416,8 @@ size_t Transaction::serialize(Stream &s, bool segwit){
     }
     if(segwit){
         for(int i=0; i<inputsNumber; i++){
-            s.write(txIns[i].witnessProgram.script, txIns[i].witnessProgram.scriptLen);
-            len += txIns[i].witnessProgram.scriptLen;
+            txIns[i].witnessProgram.serializeScript(s);
+            len += txIns[i].witnessProgram.scriptLength();
         }
     }
     intToLittleEndian(locktime, arr, 4);

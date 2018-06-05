@@ -8,9 +8,6 @@
 #include "utility/sha256.h"
 #include "utility/sha512.h"
 
-typedef    uint8_t         byte;
-
-
 /*
  *  Single line hash functions.
  */

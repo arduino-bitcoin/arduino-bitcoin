@@ -30,10 +30,6 @@ Creates a signature from `r` and `s` values or parses it from der encoded byte a
 
 `string`: the string to read der encoded signature from (`char[]` or `String()`, hex representation)
 
-## Returns
-
-The number of bytes read from the array or stream (`size_t`). `0` if parsing failed.
-
 ## See also
 
 - [Signature.parse()](parse.md)

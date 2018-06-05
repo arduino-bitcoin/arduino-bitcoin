@@ -135,7 +135,7 @@ size_t Signature::parse(Stream &s){
     return parse(arr, len);
 }
 size_t Signature::parseHex(const char * hex){
-    // looking for first hex char
+    // looking for the first hex char
     size_t cur = 0;
     char c = hex[cur];
     while(hexToVal(c) > 0x0F){
@@ -157,7 +157,11 @@ size_t Signature::parseHex(const char * hex){
     }
     uint8_t der[72];
     size_t l = fromHex(hex+cur, derLen*2, der, sizeof(der));
-    return parse(der, l);
+    if(parse(der, l) > 0){
+        return derLen*2 + cur;
+    }else{
+        return 0;
+    }
 }
 size_t Signature::parseHex(const String hex){
     size_t len = hex.length();
@@ -167,6 +171,8 @@ size_t Signature::parseHex(const String hex){
     free(arr);
     return l;
 }
+// size_t Signature::parseHex(Stream &s){
+// }
 size_t Signature::der(uint8_t * bytes, size_t len) const{
     memset(bytes, 0, len);
     bytes[0] = 0x30;
@@ -223,14 +229,13 @@ void Signature::bin(uint8_t arr[64]) const{
 size_t Signature::printTo(Print& p) const{
     uint8_t arr[72];
     size_t l = der(arr, sizeof(arr));
-    toHex(arr, l, p);
-    return l;
+    return toHex(arr, l, p);
 }
-Signature::operator String(){
-    uint8_t arr[72] = { 0 };
-    int len = der(arr, sizeof(arr));
-    return toHex(arr, len); 
-};
+// Signature::operator String(){
+//     uint8_t arr[72] = { 0 };
+//     int len = der(arr, sizeof(arr));
+//     return toHex(arr, len); 
+// };
 
 // ---------------------------------------------------------------- PublicKey class
 
@@ -266,7 +271,7 @@ PublicKey::PublicKey(char secHex[], bool use_testnet){
         uECC_decompress(secArr, point, curve);
     }
 }
-int PublicKey::sec(uint8_t * sec, size_t len){
+int PublicKey::sec(uint8_t * sec, size_t len) const{
     // TODO: check length
     memset(sec, 0, len);
     if(compressed){
@@ -279,7 +284,7 @@ int PublicKey::sec(uint8_t * sec, size_t len){
         return 65;
     }
 }
-String PublicKey::sec(){
+String PublicKey::sec() const{
     uint8_t sec_arr[65] = { 0 };
     int len = sec(sec_arr, sizeof(sec_arr));
     return toHex(sec_arr, len);

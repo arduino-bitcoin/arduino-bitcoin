@@ -22,7 +22,7 @@ void testDerParsing(char * hex){
   }
 }
 
-void testConstructors(char * hex){
+void testConstructor(char * hex){
   Serial.println(hex);
   Signature sig(hex);
   Serial.println(sig);
@@ -66,10 +66,10 @@ void setup() {
   testDerParsing("300f020592393857930206009564253453");
 
   Serial.println("\nConstructors test");
-  testConstructors("300d020449df86c1020501100cfb0d");
-  testConstructors(" ;;300d020449df86c1020501100cfb0d]]");  
-  testConstructors("300d020449df86-c1020501100cfb0d");
-  testConstructors("300d020449df86c1020501100cfb0dfee");
+  testConstructor("300d020449df86c1020501100cfb0d");
+  testConstructor(" ;;300d020449df86c1020501100cfb0d]]");  // should skip leading non-hex characters and not reach final ones
+  testConstructor("300d020449df86-c1020501100cfb0d"); // should fail as "-" is in the middle
+  testConstructor("300d020449df86c1020501100cfb0dfee"); // should not reach last two characters
 }
 
 void loop() {

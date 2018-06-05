@@ -27,26 +27,22 @@ String toHex(const uint8_t * array, size_t arraySize);
 size_t toHex(uint8_t v, Print &s); // printing single hex value to Print
 size_t toHex(const uint8_t * array, size_t arraySize, Print &s); // printing array in hex Print
 
-size_t fromHex(const char hex[], byte array[], size_t arraySize);
-size_t fromHex(const char hex[], size_t hexLen, byte array[], size_t arraySize);
-
-// TODO: implement the following functions:
-// toBech32
-// fromBech32
+size_t fromHex(const char * hex, uint8_t * array, size_t arraySize);
+size_t fromHex(const char * hex, size_t hexLen, uint8_t * array, size_t arraySize);
 
 uint8_t hexToVal(char c);
 
 /* int conversion */
-uint64_t littleEndianToInt(byte array[], size_t arraySize);
-void intToLittleEndian(uint64_t num, byte array[], size_t arraySize);
-uint64_t bigEndianToInt(byte array[], size_t arraySize);
-void intToBigEndian(uint64_t num, byte array[], size_t arraySize);
+uint64_t littleEndianToInt(const uint8_t * array, size_t arraySize);
+void intToLittleEndian(uint64_t num, uint8_t * array, size_t arraySize);
+uint64_t bigEndianToInt(const uint8_t * array, size_t arraySize);
+void intToBigEndian(uint64_t num, uint8_t * array, size_t arraySize);
 
 /* varint */
 uint8_t lenVarInt(uint64_t num); // returns length of the array required for varint encoding
-uint64_t readVarInt(byte array[], size_t arraySize);
+uint64_t readVarInt(const uint8_t * array, size_t arraySize);
 uint64_t readVarInt(Stream &s);
-size_t writeVarInt(uint64_t num, byte array[], size_t arraySize);
+size_t writeVarInt(uint64_t num, uint8_t * array, size_t arraySize);
 size_t writeVarInt(uint64_t num, Stream &s);
 
 /* Stream converters */

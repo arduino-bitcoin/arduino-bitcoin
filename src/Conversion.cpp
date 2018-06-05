@@ -57,9 +57,11 @@ size_t toHex(uint8_t v, Print &s){
 }
 
 size_t toHex(const uint8_t * array, size_t arraySize, Print &s){
+    size_t l = 0;
     for(int i=0; i<arraySize; i++){
-        toHex(array[i], s);
+        l += toHex(array[i], s);
     }
+    return l;
 }
 
 
@@ -76,7 +78,7 @@ uint8_t hexToVal(char c){
   return 0xFF;
 }
 
-size_t fromHex(const char hex[], size_t hexLen, byte array[], size_t arraySize){
+size_t fromHex(const char * hex, size_t hexLen, uint8_t * array, size_t arraySize){
     memset(array, 0, arraySize);
     if((hexLen % 2 != 0) || (arraySize < hexLen/2)){
         return 0;
@@ -93,7 +95,7 @@ size_t fromHex(const char hex[], size_t hexLen, byte array[], size_t arraySize){
     return hexLen/2;
 }
 
-size_t fromHex(const char hex[], byte array[], size_t arraySize){
+size_t fromHex(const char * hex, uint8_t * array, size_t arraySize){
     size_t len = strlen(hex);
     return fromHex(hex, len, array, arraySize);
 }
@@ -316,7 +318,7 @@ size_t fromBase58Check(String encoded, uint8_t * output, size_t outputSize){
 
 /* Integer conversion */
 
-uint64_t littleEndianToInt(byte array[], size_t arraySize){
+uint64_t littleEndianToInt(const uint8_t * array, size_t arraySize){
     uint64_t num = 0;
     for(int i = 0; i < arraySize; i++){
         num <<= 8;
@@ -325,13 +327,13 @@ uint64_t littleEndianToInt(byte array[], size_t arraySize){
     return num;
 }
 
-void intToLittleEndian(uint64_t num, byte array[], size_t arraySize){
+void intToLittleEndian(uint64_t num, uint8_t * array, size_t arraySize){
     for(int i = 0; i < arraySize; i++){
         array[i] = ((num >> (8*i)) & 0xFF);
     }
 }
 
-uint64_t bigEndianToInt(byte array[], size_t arraySize){
+uint64_t bigEndianToInt(const uint8_t * array, size_t arraySize){
     uint64_t num = 0;
     for(int i = 0; i < arraySize; i++){
         num <<= 8;
@@ -340,7 +342,7 @@ uint64_t bigEndianToInt(byte array[], size_t arraySize){
     return num;
 }
 
-void intToBigEndian(uint64_t num, byte array[], size_t arraySize){
+void intToBigEndian(uint64_t num, uint8_t * array, size_t arraySize){
     for(int i = 0; i < arraySize; i++){
         array[arraySize-i-1] = ((num >> (8*i)) & 0xFF);
     }
@@ -360,7 +362,7 @@ uint8_t lenVarInt(uint64_t num){
     }
     return 9;
 }
-uint64_t readVarInt(byte array[], size_t arraySize){
+uint64_t readVarInt(const uint8_t * array, size_t arraySize){
     if(array[0] < 0xfd){
         return array[0];
     }else{
@@ -383,7 +385,7 @@ uint64_t readVarInt(Stream &s){
     }
 }
 // TODO: don't repeat yourself!
-size_t writeVarInt(uint64_t num, byte array[], size_t arraySize){
+size_t writeVarInt(uint64_t num, uint8_t * array, size_t arraySize){
     uint8_t len = lenVarInt(num);
     if(arraySize < len){
         return 0;

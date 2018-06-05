@@ -1,8 +1,6 @@
 /*
-    TODO: 
-    write description
-    split to several headers files - will be easier to read
-    This file defines the public interface. 
+    TODO: write description and header
+    This file defines the public interface.
  */
 
 #ifndef __BITCOIN_H__BDDNDVJ300
@@ -19,8 +17,10 @@
 #define EMPTY_KEY 0
 #define INVALID_KEY 1
 
-#define PBKDF2_ROUNDS 2048 // number of rounds for mnemonic to seed conversion
+// number of rounds for mnemonic to seed conversion
+#define PBKDF2_ROUNDS 2048
 
+// Prefixes for bitcoin addresses
 #define BITCOIN_MAINNET_PREFIX 0x80
 #define BITCOIN_TESTNET_PREFIX 0xEF
 #define BITCOIN_MAINNET_P2PKH  0x00
@@ -36,6 +36,7 @@
 #define P2SH_P2WPKH            5
 #define P2SH_P2WSH             6
 
+// SigHash types
 #define SIGHASH_ALL            1
 #define SIGHASH_NONE           2
 #define SIGHASH_SINGLE         3
@@ -53,7 +54,7 @@ private:
     uint8_t s[32];
 public:
     Signature(); // empty constructor 
-    Signature(const uint8_t r_arr[32], const uint8_t s_arr[32]);
+    Signature(const uint8_t r_arr[32], const uint8_t s_arr[32]); // constructor using r and s values
     Signature(const uint8_t * der, size_t derLen);            // parses raw array
     Signature(const uint8_t * der);                           // parses raw array
     Signature(Stream &s);                                     // parses raw array from Stream
@@ -75,14 +76,15 @@ public:
     // parses der-encoded signature in hex format from char array, String or Stream
     size_t parseHex(const char * hex);                        // parses hex string
     size_t parseHex(const String hex);                        // parses String
-    size_t parseHex(Stream &s);                               // parses hex string from Stream
+    // TODO: implement
+    // size_t parseHex(Stream &s);                               // parses hex string from Stream
 
     // the same as der()
     size_t serialize(uint8_t * arr, size_t len) const{ return der(arr, len); };
     size_t serialize(Stream &s) const{ return der(s); };
 
     // Prints der-encoded signature in hex format to any stream / display / file
-    // For example allow to do Serial.print(signature)
+    // For example allows to do Serial.print(signature)
     size_t printTo(Print& p) const;
 
     // Operators overloading
@@ -102,38 +104,60 @@ public:
  *  Script class
  */
 
-class Script{
-public:
-    // TODO: move to protected / private
-    // TODO: length() function instead of variable
-    uint8_t * script = NULL;
-    size_t scriptLen = 0;
-
-    Script();
-    Script(uint8_t * buffer, size_t len);
-    Script(char address[]); // creates script from address
-    Script(String address);
-    Script(PublicKey pubkey, int type = P2PKH); // creates one of standart scripts
-    Script(Script const &other);
-    ~Script();
-    size_t parse(Stream &s);
-    int type();
-    String address(bool testnet = false);
-    size_t length(); // length of the serialized bytes sequence
-    size_t serialize(Stream &s); // serialize to Stream
-    size_t serialize(uint8_t array[], size_t len); // serialize to array
-    size_t push(uint8_t code);
-    size_t push(uint8_t data[], size_t len);
-    size_t push(PublicKey pubkey); // adds <len><sec> to the script
-    size_t push(Signature sig);//, uint8_t sigType = SIGHASH_ALL); // adds <len><der><sigType> to the script
-    size_t push(Script sc); // adds <len><script> to the script (used for P2SH)
-
-    Script scriptPubkey();
-
-    Script &operator=(Script const &other);
-    operator String();
+class Script : public Printable{
 private:
-    void clear();
+    void clear();                                             // clears memory
+    uint8_t * scriptArray = NULL;                             // stores actual script data
+    size_t scriptLen = 0;                                     // script length
+public:
+    Script();                                                 // empty constructor
+    Script(const uint8_t * buffer, size_t len);               // creates script from byte array
+    Script(const char address[]);                             // creates script from address
+    Script(const String address);                             // creates script from address
+    Script(const PublicKey pubkey, int type = P2PKH);         // creates one of standart scripts (P2PKH, P2WPKH)
+    Script(const Script &other);                              // copy
+    ~Script();                                                // destructor, clears memory
+
+    // parses script from byte array or stream (<len><script>)
+    size_t parse(const uint8_t * buffer, size_t len);         // parses raw array
+    size_t parse(const uint8_t * buffer);                     // parses raw array
+    size_t parse(Stream &s);                                  // parses raw array from Stream
+
+    // TODO: implement
+    // parses script in hex format from char array, String or Stream (<len><script>)
+    // size_t parseHex(const char * hex);                        // parses hex string
+    // size_t parseHex(const String hex);                        // parses String
+    // size_t parseHex(Stream &s);                               // parses hex string from Stream
+
+    int type() const;
+    String address(bool testnet = false) const;
+
+    size_t length() const;                                    // length of the serialized bytes sequence
+    size_t serialize(Stream &s) const;                        // serialize to Stream
+    size_t serialize(uint8_t array[], size_t len) const;      // serialize to array
+
+    size_t scriptLength() const;                              // length of the script without varint
+    size_t serializeScript(Stream &s) const;                  // serialize to Stream only script without len
+    size_t serializeScript(uint8_t array[], size_t len) const;// serialize to array only script without len
+
+    size_t push(uint8_t code);                                // pushes a single byte (op_code) to the end
+    size_t push(const uint8_t data[], size_t len);            // pushes bytes from data object to the end
+    size_t push(const PublicKey pubkey);                      // adds <len><sec> to the script
+    size_t push(const Signature sig);//, uint8_t sigType = SIGHASH_ALL); // adds <len><der><sigType> to the script
+    size_t push(const Script sc);                             // adds <len><script> to the script (used for P2SH)
+
+    Script scriptPubkey() const;                              // returns scriptPubkey corresponding to this redeem script
+
+    // Prints hex encoded script to any stream / display / file
+    // For example allows to do Serial.print(script)
+    size_t printTo(Print& p) const;
+
+    Script &operator=(Script const &other);                   // assignment
+    operator String();
+    // TODO: operator +, +=, == etc
+
+    // Bool conversion. Allows to use if(script) construction. Returns false if script is empty, true otherwise
+    explicit operator bool() const{ return (scriptLen > 0); };
 };
 
 /*
@@ -147,14 +171,14 @@ class PublicKey{
     public:
         byte point[64];  // point on curve (x,y)
         bool compressed;
-        bool testnet;
+        bool testnet; // TODO: remove from here as parse(serialize()) will not preserve testnet flag
 
         PublicKey();
         PublicKey(byte pubkeyArr[64], bool use_compressed, bool use_testnet = false);
         PublicKey(byte secArr[], bool use_testnet = false);
         PublicKey(char secHex[], bool use_testnet = false); // fromHex method will be better
-        int sec(byte sec[], size_t len);
-        String sec();
+        int sec(byte sec[], size_t len) const;
+        String sec() const;
         int fromSec(byte secArr[], bool use_testnet = false);
         int address(char * address, size_t len);
         String address();
