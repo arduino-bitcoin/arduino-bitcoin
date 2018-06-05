@@ -96,7 +96,7 @@ public:
     explicit operator bool() const{ uint8_t arr[32] = { 0 }; return !((memcmp(r, arr, 32) == 0) && (memcmp(s, arr, 32)==0)); };
 
     // Two signatures are equal if R and S are the same
-    bool operator==(const Signature& other) const{ uint8_t arr[64]; other.bin(arr); return (memcmp(arr, r, 32) == 0) && (memcmp(arr+32, s, 32) == 0); };
+    bool operator==(const Signature& other) const{ return (memcmp(r, other.r, 32) == 0) && (memcmp(s, other.s, 32) == 0); };
     bool operator!=(const Signature& other) const{ return !operator==(other); };
 };
 
@@ -154,10 +154,12 @@ public:
 
     Script &operator=(Script const &other);                   // assignment
     operator String();
-    // TODO: operator +, +=, == etc
+    // TODO: operator +, +=, etc
 
     // Bool conversion. Allows to use if(script) construction. Returns false if script is empty, true otherwise
     explicit operator bool() const{ return (scriptLen > 0); };
+    bool operator==(const Script& other) const{ return (scriptLen == other.scriptLen) && (memcmp(scriptArray, other.scriptArray, scriptLen) == 0); };
+    bool operator!=(const Script& other) const{ return !operator==(other); };
 };
 
 /*
