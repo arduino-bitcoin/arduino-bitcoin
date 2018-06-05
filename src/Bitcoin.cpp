@@ -166,7 +166,7 @@ size_t Signature::parseHex(const char * hex){
 size_t Signature::parseHex(const String hex){
     size_t len = hex.length();
     char * arr = (char *)calloc(len+1, sizeof(char));
-    hex.toCharArray(arr, len);
+    hex.toCharArray(arr, len+1);
     size_t l = parseHex(arr);
     free(arr);
     return l;
