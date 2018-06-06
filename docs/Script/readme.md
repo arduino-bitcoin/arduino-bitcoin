@@ -28,4 +28,4 @@ If you pass `Script` to the `print()` method of `Serial` or any other `Stream` o
 - [Script page on Bitcoin wiki](https://en.bitcoin.it/wiki/Script)
 - [Script example](../../examples/07.Script/07.Script.ino)
 - [Multisig example](../../examples/08.Multisig/08.Multisig.ino)
-- TODO: Script test
+- [Script test](../../tests/ScriptTest/ScriptTest.ino)

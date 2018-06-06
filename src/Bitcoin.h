@@ -112,7 +112,7 @@ private:
 public:
     Script();                                                 // empty constructor
     Script(const uint8_t * buffer, size_t len);               // creates script from byte array
-    Script(const char address[]);                             // creates script from address
+    Script(const char * address);                             // creates script from address
     Script(const String address);                             // creates script from address
     Script(const PublicKey pubkey, int type = P2PKH);         // creates one of standart scripts (P2PKH, P2WPKH)
     Script(const Script &other);                              // copy
@@ -130,18 +130,19 @@ public:
     // size_t parseHex(Stream &s);                               // parses hex string from Stream
 
     int type() const;
+    size_t address(char * buffer, size_t len, bool testnet = false) const;
     String address(bool testnet = false) const;
 
     size_t length() const;                                    // length of the serialized bytes sequence
     size_t serialize(Stream &s) const;                        // serialize to Stream
-    size_t serialize(uint8_t array[], size_t len) const;      // serialize to array
+    size_t serialize(uint8_t * array, size_t len) const;      // serialize to array
 
     size_t scriptLength() const;                              // length of the script without varint
     size_t serializeScript(Stream &s) const;                  // serialize to Stream only script without len
-    size_t serializeScript(uint8_t array[], size_t len) const;// serialize to array only script without len
+    size_t serializeScript(uint8_t * array, size_t len) const;// serialize to array only script without len
 
     size_t push(uint8_t code);                                // pushes a single byte (op_code) to the end
-    size_t push(const uint8_t data[], size_t len);            // pushes bytes from data object to the end
+    size_t push(const uint8_t * data, size_t len);            // pushes bytes from data object to the end
     size_t push(const PublicKey pubkey);                      // adds <len><sec> to the script
     size_t push(const Signature sig);//, uint8_t sigType = SIGHASH_ALL); // adds <len><der><sigType> to the script
     size_t push(const Script sc);                             // adds <len><script> to the script (used for P2SH)
@@ -167,32 +168,42 @@ public:
     Compressed flag determines what public key sec format to use by default.
         compressed = false will use 65-byte representation (04<x><y>)
         compressed = true will use 33-byte representation (03<x> if y is odd, 02<x> if y is even)
-    Testnet flag should be set if you want to use bitcoin testnet, not mainnet.
  */
-class PublicKey{
-    public:
-        byte point[64];  // point on curve (x,y)
-        bool compressed;
-        bool testnet; // TODO: remove from here as parse(serialize()) will not preserve testnet flag
+class PublicKey : public Printable {
+public:
+    byte point[64];  // point on curve (x,y)
+    bool compressed;
 
-        PublicKey();
-        PublicKey(byte pubkeyArr[64], bool use_compressed, bool use_testnet = false);
-        PublicKey(byte secArr[], bool use_testnet = false);
-        PublicKey(char secHex[], bool use_testnet = false); // fromHex method will be better
-        int sec(byte sec[], size_t len) const;
-        String sec() const;
-        int fromSec(byte secArr[], bool use_testnet = false);
-        int address(char * address, size_t len);
-        String address();
-        int segwitAddress(char * address, size_t len);
-        String segwitAddress();
-        int nestedSegwitAddress(char * address, size_t len);
-        String nestedSegwitAddress();
-        bool verify(Signature sig, byte hash[32]);
-        bool isValid() const;
-        Script script(int type = P2PKH);
-        operator String();
-        explicit operator bool() const { return isValid(); };
+    PublicKey();
+    PublicKey(const uint8_t pubkeyArr[64], bool use_compressed);
+    PublicKey(const uint8_t * secArr);
+    explicit PublicKey(const char * secHex); // parseHex method will be better
+
+    size_t sec(uint8_t * sec, size_t len) const; // TODO: make serialize()
+    String sec() const;
+    size_t fromSec(const uint8_t * secArr);
+    int address(char * address, size_t len, bool testnet = false) const;
+    String address(bool testnet = false) const;
+    int segwitAddress(char * address, size_t len, bool testnet = false) const;
+    String segwitAddress(bool testnet = false) const;
+    int nestedSegwitAddress(char * address, size_t len, bool testnet = false) const;
+    String nestedSegwitAddress(bool testnet = false) const;
+    bool verify(const Signature sig, const uint8_t hash[32]) const;
+    bool isValid() const;
+    Script script(int type = P2PKH) const;
+
+    bool isCompressed() const { return compressed; };
+    void compress(){ compressed = true; };
+    void uncompress(){ compressed = false; };
+
+    // Prints hex encoded public key in sec format to any stream / display / file
+    // For example allows to do Serial.print(publicKey)
+    size_t printTo(Print& p) const;
+
+    operator String();
+    explicit operator bool() const { return isValid(); };
+    bool operator==(const PublicKey& other) const{ return (compressed == other.compressed) && (memcmp(point, other.point, 64) == 0); };
+    bool operator!=(const PublicKey& other) const{ return !operator==(other); };
 };
 
 /*
@@ -293,6 +304,7 @@ class HDPublicKey{
         uint8_t depth;
         uint8_t fingerprint[4];
         uint32_t childNumber;
+        bool testnet = false;
 
         int xpub(char arr[], size_t len);
         String xpub();

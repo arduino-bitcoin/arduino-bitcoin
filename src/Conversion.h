@@ -52,20 +52,20 @@ size_t writeVarInt(uint64_t num, Stream &s);
    Useful for transaction parsing.
  */
 class ByteStream : public Stream{
-	size_t len = 0;
-	size_t cursor = 0;
-	uint8_t * buf = NULL;
+    size_t len = 0;
+    size_t cursor = 0;
+    uint8_t * buf = NULL;
 public:
-	ByteStream();
-	ByteStream(uint8_t * buffer, size_t length);
-	~ByteStream();
-	int available();
-	int read();
-	int peek();
-	void flush();
-	size_t readBytes( uint8_t * buffer, size_t length);
-	size_t write(uint8_t b);
-	size_t write(uint8_t * arr, size_t length);
+    ByteStream();
+    ByteStream(uint8_t * buffer, size_t length);
+    ~ByteStream();
+    int available();
+    int read();
+    int peek();
+    void flush();
+    size_t readBytes( uint8_t * buffer, size_t length);
+    size_t write(uint8_t b);
+    size_t write(uint8_t * arr, size_t length);
 };
 
 

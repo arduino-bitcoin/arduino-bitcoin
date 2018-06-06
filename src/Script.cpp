@@ -15,7 +15,7 @@ Script::Script(const uint8_t * buffer, size_t len){
     if(len > MAX_SCRIPT_SIZE){
         return;
     }
-	scriptLen = len;
+    scriptLen = len;
     scriptArray = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
     memcpy(scriptArray, buffer, scriptLen);
 }
@@ -76,8 +76,8 @@ Script::Script(const String address){
 }
 Script::Script(const PublicKey pubkey, int type){
     if(type == P2PKH){
-    	scriptLen = 25;
-    	scriptArray = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
+        scriptLen = 25;
+        scriptArray = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
         scriptArray[0] = OP_DUP;
         scriptArray[1] = OP_HASH160;
         scriptArray[2] = 20;
@@ -99,13 +99,13 @@ Script::Script(const PublicKey pubkey, int type){
 }
 Script::Script(const Script &other){
     if(other.scriptLen > 0){
-		scriptLen = other.scriptLen;
+        scriptLen = other.scriptLen;
         scriptArray = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
         memcpy(scriptArray, other.scriptArray, scriptLen);
     }
 }
 Script::~Script(void){
-	clear();
+    clear();
 }
 void Script::clear(){
     if(scriptLen > 0){
@@ -114,7 +114,7 @@ void Script::clear(){
     }
 }
 size_t Script::parse(Stream &s){
-	clear();
+    clear();
     int l = s.peek();
     if(l < 0){
         return 0;
@@ -158,16 +158,16 @@ size_t Script::parse(const uint8_t * buffer, size_t len){
 // }
 
 int Script::type() const{
-	if(
-		(scriptLen == 25) && 
-		(scriptArray[0] == OP_DUP) &&
-		(scriptArray[1] == OP_HASH160) &&
-		(scriptArray[2] == 20) &&
-		(scriptArray[23] == OP_EQUALVERIFY) &&
-		(scriptArray[24] == OP_CHECKSIG)
-	){
-		return P2PKH;
-	}
+    if(
+        (scriptLen == 25) && 
+        (scriptArray[0] == OP_DUP) &&
+        (scriptArray[1] == OP_HASH160) &&
+        (scriptArray[2] == 20) &&
+        (scriptArray[23] == OP_EQUALVERIFY) &&
+        (scriptArray[24] == OP_CHECKSIG)
+    ){
+        return P2PKH;
+    }
     if(
         (scriptLen == 23) &&
         (scriptArray[0] == OP_HASH160) &&
@@ -190,10 +190,11 @@ int Script::type() const{
     ){
         return P2WSH;
     }
-	return 0;
+    return 0;
 }
-String Script::address(bool testnet) const{
-	if(type() == P2PKH){
+size_t Script::address(char * buffer, size_t len, bool testnet) const{
+    memset(buffer, len, 0);
+    if(type() == P2PKH){
         uint8_t addr[21];
         if(testnet){
             addr[0] = BITCOIN_TESTNET_P2PKH;
@@ -203,8 +204,13 @@ String Script::address(bool testnet) const{
         memcpy(addr+1, scriptArray + 3, 20);
         char address[40] = { 0 };
         toBase58Check(addr, 21, address, sizeof(address));
-        return String(address);
-	}
+        size_t l = strlen(address);
+        if(l > len){
+            return 0;
+        }
+        memcpy(buffer, address, l);
+        return l;
+    }
     if(type() == P2SH){
         uint8_t addr[21];
         if(testnet){
@@ -215,7 +221,12 @@ String Script::address(bool testnet) const{
         memcpy(addr+1, scriptArray + 2, 20);
         char address[40] = { 0 };
         toBase58Check(addr, 21, address, sizeof(address));
-        return String(address);
+        size_t l = strlen(address);
+        if(l > len){
+            return 0;
+        }
+        memcpy(buffer, address, l);
+        return l;
     }
     if(type() == P2WPKH || type() == P2WSH){
         char address[76] = { 0 };
@@ -224,9 +235,22 @@ String Script::address(bool testnet) const{
             memcpy(prefix, "tb", 2);
         }
         segwit_addr_encode(address, prefix, scriptArray[0], scriptArray+2, scriptArray[1]);
-        return String(address);
+        size_t l = strlen(address);
+        if(l > len){
+            return 0;
+        }
+        memcpy(buffer, address, l);
+        return l;
     }
-	return "Unknown address";
+    return 0;
+}
+String Script::address(bool testnet) const{
+    char buffer[100] = { 0 };
+    size_t l = address(buffer, sizeof(buffer), testnet);
+    if(l == 0){
+        return String("");
+    }
+    return String(buffer);
 }
 size_t Script::length() const{
     return scriptLen + lenVarInt(scriptLen);
@@ -337,17 +361,17 @@ size_t Script::printTo(Print& p) const{
 Script &Script::operator=(Script const &other){ 
     clear();
     if(other.scriptLen > 0){
-		scriptLen = other.scriptLen;
+        scriptLen = other.scriptLen;
         scriptArray = (uint8_t *) calloc( scriptLen, sizeof(uint8_t));
         memcpy(scriptArray, other.scriptArray, scriptLen);
     }
     return *this; 
 };
 
-// Script::operator String(){ 
-// 	if(scriptLen>0){
-// 	    return toHex(scriptArray, scriptLen);
-// 	}else{
-// 		return "";
-// 	}
-// };
+Script::operator String(){ 
+    if(scriptLen>0){
+        return toHex(scriptArray, scriptLen);
+    }else{
+        return "";
+    }
+};

@@ -231,22 +231,20 @@ size_t Signature::printTo(Print& p) const{
     size_t l = der(arr, sizeof(arr));
     return toHex(arr, l, p);
 }
-// Signature::operator String(){
-//     uint8_t arr[72] = { 0 };
-//     int len = der(arr, sizeof(arr));
-//     return toHex(arr, len); 
-// };
+Signature::operator String(){
+    uint8_t arr[72] = { 0 };
+    int len = der(arr, sizeof(arr));
+    return toHex(arr, len); 
+};
 
 // ---------------------------------------------------------------- PublicKey class
 
 PublicKey::PublicKey(){}
-PublicKey::PublicKey(uint8_t pubkeyArr[], bool use_compressed, bool use_testnet){
+PublicKey::PublicKey(const uint8_t * pubkeyArr, bool use_compressed){
     memcpy(point, pubkeyArr, 64);
     compressed = use_compressed;
-    testnet = use_testnet;
 }
-PublicKey::PublicKey(byte secArr[], bool use_testnet){
-    testnet = use_testnet;
+PublicKey::PublicKey(const uint8_t * secArr){
     memset(point, 0, 64);
     if(secArr[0]==0x04){
         compressed = false;
@@ -257,8 +255,7 @@ PublicKey::PublicKey(byte secArr[], bool use_testnet){
         uECC_decompress(secArr, point, curve);
     }
 }
-PublicKey::PublicKey(char secHex[], bool use_testnet){
-    testnet = use_testnet;
+PublicKey::PublicKey(const char * secHex){
     memset(point, 0, 64);
     if((secHex[0] == '0') && (secHex[1] == '4')){
         compressed = false;
@@ -271,7 +268,7 @@ PublicKey::PublicKey(char secHex[], bool use_testnet){
         uECC_decompress(secArr, point, curve);
     }
 }
-int PublicKey::sec(uint8_t * sec, size_t len) const{
+size_t PublicKey::sec(uint8_t * sec, size_t len) const{
     // TODO: check length
     memset(sec, 0, len);
     if(compressed){
@@ -289,20 +286,20 @@ String PublicKey::sec() const{
     int len = sec(sec_arr, sizeof(sec_arr));
     return toHex(sec_arr, len);
 }
-int PublicKey::fromSec(byte secArr[], bool use_testnet){
-    testnet = use_testnet;
+size_t PublicKey::fromSec(const uint8_t * secArr){
     memset(point, 0, 64);
     if(secArr[0]==0x04){
         compressed = false;
         memcpy(point, secArr+1, 64);
+        return 65;
     }else{
         compressed = true;
         const struct uECC_Curve_t * curve = uECC_secp256k1();
         uECC_decompress(secArr, point, curve);
+        return 33;
     }
-    return 1;
 }
-int PublicKey::address(char * address, size_t len){
+int PublicKey::address(char * address, size_t len, bool testnet) const{
     memset(address, 0, len);
 
     uint8_t buffer[20];
@@ -320,12 +317,12 @@ int PublicKey::address(char * address, size_t len){
 
     return toBase58Check(addr, 21, address, len);
 }
-String PublicKey::address(){
+String PublicKey::address(bool testnet) const{
     char addr[40] = { 0 };
-    address(addr, sizeof(addr));
+    address(addr, sizeof(addr), testnet);
     return String(addr);
 }
-int PublicKey::segwitAddress(char address[], size_t len){
+int PublicKey::segwitAddress(char address[], size_t len, bool testnet) const{
     memset(address, 0, len);
     if(len < 76){ // TODO: 76 is too much for native segwit
         return 0;
@@ -341,12 +338,12 @@ int PublicKey::segwitAddress(char address[], size_t len){
     segwit_addr_encode(address, prefix, 0, hash, 20);
     return 76;
 }
-String PublicKey::segwitAddress(){
+String PublicKey::segwitAddress(bool testnet) const{
     char addr[76] = { 0 };
-    segwitAddress(addr, sizeof(addr));
+    segwitAddress(addr, sizeof(addr), testnet);
     return String(addr);
 }
-int PublicKey::nestedSegwitAddress(char address[], size_t len){
+int PublicKey::nestedSegwitAddress(char address[], size_t len, bool testnet) const{
     memset(address, 0, len);
     uint8_t script[22] = { 0 };
     script[0] = 0x00;
@@ -365,15 +362,15 @@ int PublicKey::nestedSegwitAddress(char address[], size_t len){
 
     return toBase58Check(addr, 21, address, len);
 }
-String PublicKey::nestedSegwitAddress(){
+String PublicKey::nestedSegwitAddress(bool testnet) const{
     char addr[40] = { 0 };
-    nestedSegwitAddress(addr, sizeof(addr));
+    nestedSegwitAddress(addr, sizeof(addr), testnet);
     return String(addr);
 }
-Script PublicKey::script(int type){
+Script PublicKey::script(int type) const{
     return Script(*this, type);
 }
-bool PublicKey::verify(Signature sig, byte hash[32]){
+bool PublicKey::verify(const Signature sig, const uint8_t hash[32]) const{
     uint8_t signature[64] = {0};
     sig.bin(signature);
     const struct uECC_Curve_t * curve = uECC_secp256k1();
@@ -387,6 +384,11 @@ PublicKey::operator String(){
 bool PublicKey::isValid() const{
     const struct uECC_Curve_t * curve = uECC_secp256k1();
     return uECC_valid_public_key(point, curve);
+}
+size_t PublicKey::printTo(Print& p) const{
+    uint8_t arr[65] = { 0 };
+    int len = sec(arr, sizeof(arr));
+    return toHex(arr, len, p);
 }
 
 // ---------------------------------------------------------------- PrivateKey class
@@ -402,7 +404,7 @@ PrivateKey::PrivateKey(uint8_t secret_arr[], bool use_compressed, bool use_testn
     const struct uECC_Curve_t * curve = uECC_secp256k1();
     uint8_t p[64] = {0};
     uECC_compute_public_key(secret, p, curve);
-    pubKey = PublicKey(p, use_compressed, use_testnet);
+    pubKey = PublicKey(p, use_compressed);
 }
 PrivateKey::~PrivateKey(void) {
     // erase secret key from memory
@@ -456,7 +458,7 @@ int PrivateKey::fromWIF(const char wifArr[], size_t wifSize){
     const struct uECC_Curve_t * curve = uECC_secp256k1();
     uint8_t p[64] = {0};
     uECC_compute_public_key(secret, p, curve);
-    pubKey = PublicKey(p, compressed, testnet);
+    pubKey = PublicKey(p, compressed);
 
     return 0;
 }
@@ -482,28 +484,27 @@ bool PrivateKey::isValid() const{
 }
 
 PublicKey PrivateKey::publicKey(){
-    pubKey.testnet = testnet;
     pubKey.compressed = compressed;
     return pubKey;
 }
 
 int PrivateKey::address(char * address, size_t len){
-    return publicKey().address(address, len);
+    return publicKey().address(address, len, testnet);
 }
 String PrivateKey::address(){
-    return publicKey().address();
+    return publicKey().address(testnet);
 }
 int PrivateKey::segwitAddress(char * address, size_t len){
-    return publicKey().segwitAddress(address, len);
+    return publicKey().segwitAddress(address, len, testnet);
 }
 String PrivateKey::segwitAddress(){
-    return publicKey().segwitAddress();
+    return publicKey().segwitAddress(testnet);
 }
 int PrivateKey::nestedSegwitAddress(char * address, size_t len){
-    return publicKey().nestedSegwitAddress(address, len);
+    return publicKey().nestedSegwitAddress(address, len, testnet);
 }
 String PrivateKey::nestedSegwitAddress(){
-    return publicKey().nestedSegwitAddress();
+    return publicKey().nestedSegwitAddress(testnet);
 }
 
 

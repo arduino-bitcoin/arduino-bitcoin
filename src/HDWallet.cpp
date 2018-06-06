@@ -338,7 +338,8 @@ HDPublicKey::HDPublicKey(uint8_t point[64],
                            uint32_t child_number,
                            bool use_testnet){
 
-    publicKey = PublicKey(point, true, use_testnet);
+    testnet = use_testnet;
+    publicKey = PublicKey(point, true);
     memcpy(chainCode, chain_code, 32);
     depth = key_depth;
     childNumber = child_number;
@@ -359,7 +360,7 @@ HDPublicKey::HDPublicKey(char xpubArr[]){
         // unknown format. TODO: implement ypub, zpub etc
         return;
     }
-    bool testnet = false;
+    testnet = false;
     if(memcmp(arr, XPUB_TESTNET_PREFIX, 4)==0){
         testnet = true;
     }
@@ -373,7 +374,7 @@ HDPublicKey::HDPublicKey(char xpubArr[]){
     memcpy(chainCode, arr+13, 32);
     byte sec_arr[33];
     memcpy(sec_arr, arr+45, 33);
-    publicKey.fromSec(sec_arr, testnet);
+    publicKey.fromSec(sec_arr);
 }
 HDPublicKey::~HDPublicKey(void) {
     // erase chain code from memory
@@ -384,7 +385,7 @@ bool HDPublicKey::isValid(){
 }
 int HDPublicKey::xpub(char arr[], size_t len){
     uint8_t hex[111] = { 0 }; // TODO: real length, in xpub compressed = true
-    if(publicKey.testnet){
+    if(testnet){
         memcpy(hex, XPUB_TESTNET_PREFIX, 4);
     }else{
         memcpy(hex, XPUB_MAINNET_PREFIX, 4);
@@ -440,6 +441,7 @@ HDPublicKey HDPublicKey::child(uint32_t index){
     uint8_t point[64] = { 0 };
     uECC_add_points(p, publicKey.point, point, curve);
 
-    child.publicKey = PublicKey(point, true, publicKey.testnet);
+    child.publicKey = PublicKey(point, true);
+    child.testnet = testnet;
     return child;
 }
