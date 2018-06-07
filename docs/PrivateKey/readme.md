@@ -2,7 +2,9 @@
 
 ## Description
 
-Used to store a 32-byte secret required for signing transactions and messages. Also stores additional information about network (mainnet or testnet) and if compressed or uncompressed public key should be used in transactions. Detailed information about Bitcoin private keys can be found on [Bitcoin wiki](https://en.bitcoin.it/wiki/Private_key). Private keys can be exported or imported using [Wallet Import Format](https://en.bitcoin.it/wiki/Wallet_import_format). If you try to print PrivateKey to `Serial` or any other `Stream` (like display or file on SD card) it will be converted to WIF string.
+Used to store a 32-byte secret required for signing and public key derivation. Also stores additional information about network (mainnet or testnet) and if compressed or uncompressed public key should be used in transactions. Detailed information about Bitcoin private keys can be found on [Bitcoin wiki](https://en.bitcoin.it/wiki/Private_key). Private keys can be exported or imported using [Wallet Import Format](https://en.bitcoin.it/wiki/Wallet_import_format). 
+
+If you pass PrivateKey to `Serial` or any other `Stream` (like display or file on SD card) it will be printed as WIF.
 
 ## Functions
 

@@ -41,6 +41,7 @@ void sendFromSegwit(){
 
   Signature sig = tx.signInput(0, privateKey, redeemScript);
   Serial.println(tx);
+  Serial.println(tx.id());
 }
 
 void setup() {

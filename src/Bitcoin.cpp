@@ -396,7 +396,7 @@ size_t PublicKey::printTo(Print& p) const{
 PrivateKey::PrivateKey(void){
     memset(secret, 0xFF, 32); // empty key
 }
-PrivateKey::PrivateKey(uint8_t secret_arr[], bool use_compressed, bool use_testnet){
+PrivateKey::PrivateKey(const uint8_t * secret_arr, bool use_compressed, bool use_testnet){
     memcpy(secret, secret_arr, 32);
     compressed = use_compressed;
     testnet = use_testnet;
@@ -411,7 +411,7 @@ PrivateKey::~PrivateKey(void) {
     memset(secret, 0, 32);
 }
 
-int PrivateKey::wif(char wifArr[], size_t wifSize){
+int PrivateKey::wif(char * wifArr, size_t wifSize) const{
     memset(wifArr, 0, wifSize);
 
     uint8_t wifHex[34] = { 0 }; // prefix + 32 bytes secret (+ compressed )
@@ -431,12 +431,12 @@ int PrivateKey::wif(char wifArr[], size_t wifSize){
     memset(wifHex, 0, sizeof(wifHex)); // secret should not stay in RAM
     return l;
 }
-String PrivateKey::wif(){
+String PrivateKey::wif() const{
     char wifString[53] = { 0 };
     wif(wifString, sizeof(wifString));
     return String(wifString);
 }
-int PrivateKey::fromWIF(const char wifArr[], size_t wifSize){
+int PrivateKey::fromWIF(const char * wifArr, size_t wifSize){
     byte arr[40] = { 0 };
     size_t l = fromBase58Check(wifArr, wifSize, arr, sizeof(arr));
     if( (l < 33) || (l > 34) ){
@@ -462,7 +462,7 @@ int PrivateKey::fromWIF(const char wifArr[], size_t wifSize){
 
     return 0;
 }
-int PrivateKey::fromWIF(const char wifArr[]){
+int PrivateKey::fromWIF(const char * wifArr){
     return fromWIF(wifArr, strlen(wifArr));
 }
 // TODO: check if > N ???
@@ -483,32 +483,33 @@ bool PrivateKey::isValid() const{
     return false;
 }
 
-PublicKey PrivateKey::publicKey(){
-    pubKey.compressed = compressed;
-    return pubKey;
+PublicKey PrivateKey::publicKey() const{
+    PublicKey p = pubKey;
+    p.compressed = compressed;
+    return p;
 }
 
-int PrivateKey::address(char * address, size_t len){
+int PrivateKey::address(char * address, size_t len) const{
     return publicKey().address(address, len, testnet);
 }
-String PrivateKey::address(){
+String PrivateKey::address() const{
     return publicKey().address(testnet);
 }
-int PrivateKey::segwitAddress(char * address, size_t len){
+int PrivateKey::segwitAddress(char * address, size_t len) const{
     return publicKey().segwitAddress(address, len, testnet);
 }
-String PrivateKey::segwitAddress(){
+String PrivateKey::segwitAddress() const{
     return publicKey().segwitAddress(testnet);
 }
-int PrivateKey::nestedSegwitAddress(char * address, size_t len){
+int PrivateKey::nestedSegwitAddress(char * address, size_t len) const{
     return publicKey().nestedSegwitAddress(address, len, testnet);
 }
-String PrivateKey::nestedSegwitAddress(){
+String PrivateKey::nestedSegwitAddress() const{
     return publicKey().nestedSegwitAddress(testnet);
 }
 
 
-Signature PrivateKey::sign(byte hash[32]){
+Signature PrivateKey::sign(const uint8_t hash[32]) const{
     uint8_t tmp[32 + 32 + 64] = {0};
     uint8_t signature[64] = {0};
     const struct uECC_Curve_t * curve = uECC_secp256k1();
@@ -537,7 +538,7 @@ bool PrivateKey::operator!=(const PrivateKey& other) const{
 bool PrivateKey::operator!=(const int& other) const{
     return !operator==(other);
 }
-PrivateKey::PrivateKey(const char wifArr[]){
+PrivateKey::PrivateKey(const char * wifArr){
     fromWIF(wifArr);
 }
 PrivateKey::PrivateKey(const String wifString){

@@ -219,30 +219,31 @@ class PrivateKey{
         uint8_t secret[32]; // 32-byte secret
 
         PrivateKey();
-        PrivateKey(uint8_t secret_arr[], bool use_compressed = true, bool use_testnet = false);
-        PrivateKey(const char wifArr[]);
+        PrivateKey(const uint8_t * secret_arr, bool use_compressed = true, bool use_testnet = false);
+        PrivateKey(const char * wifArr);
         PrivateKey(const String wifString);
         ~PrivateKey();
 
         bool isValid() const;
 
+        // TODO: remove `compressed` from here. PublicKey already has it.
         bool compressed;    // set to true if you want to use compressed public key format
         bool testnet;       // set to true for testnet
 
-        int wif(char wifArr[], size_t len); // writes wallet import format string to wif array. 51 or 52 characters are required.
-        String wif();
-        int fromWIF(const char wifArr[], size_t wifSize);
-        int fromWIF(const char wifArr[]);
-        PublicKey publicKey();
-        Signature sign(byte hash[32]); // pass 32-byte hash of the message here
+        int wif(char * wifArr, size_t len) const; // writes wallet import format string to wif array. 51 or 52 characters are required.
+        String wif() const;
+        int fromWIF(const char * wifArr, size_t wifSize);
+        int fromWIF(const char * wifArr);
+        PublicKey publicKey() const;
+        Signature sign(const uint8_t hash[32]) const; // pass 32-byte hash of the message here
 
         // Aliases for .publicKey().address() etc
-        int address(char address[], size_t len);
-        String address();
-        int segwitAddress(char address[], size_t len);
-        String segwitAddress();
-        int nestedSegwitAddress(char address[], size_t len);
-        String nestedSegwitAddress();
+        int address(char * address, size_t len) const;
+        String address() const;
+        int segwitAddress(char * address, size_t len) const;
+        String segwitAddress() const;
+        int nestedSegwitAddress(char * address, size_t len) const;
+        String nestedSegwitAddress() const;
 
         // operators overloading
         bool operator==(const PrivateKey& other) const;

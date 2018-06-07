@@ -107,7 +107,7 @@ Arduino Bitcoin library is object-oriented. Most of the things are classes. For 
 ### Keys
 
 - [PrivateKey](PrivateKey/readme.md)
-- PublicKey
+- [PublicKey](PublicKey/readme.md)
 - HDPrivateKey
 - HDPublicKey
 
