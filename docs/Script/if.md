@@ -14,4 +14,4 @@ Nothing
 
 ## Returns
 
-`boolean` : Return false if script is empty, true otherwise.
+`bool` : Return false if script is empty, true otherwise.

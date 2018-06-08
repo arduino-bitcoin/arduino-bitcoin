@@ -410,7 +410,6 @@ PrivateKey::~PrivateKey(void) {
     // erase secret key from memory
     memset(secret, 0, 32);
 }
-
 int PrivateKey::wif(char * wifArr, size_t wifSize) const{
     memset(wifArr, 0, wifSize);
 

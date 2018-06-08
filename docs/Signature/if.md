@@ -16,7 +16,7 @@ Nothing
 
 ## Returns
 
-`boolean` : returns true if signature is ok. Return false if something went wrong.
+`bool` : returns true if signature is ok. Return false if something went wrong.
 
 ## Example code
 

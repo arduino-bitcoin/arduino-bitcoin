@@ -219,12 +219,15 @@ class PrivateKey{
         uint8_t secret[32]; // 32-byte secret
 
         PrivateKey();
-        PrivateKey(const uint8_t * secret_arr, bool use_compressed = true, bool use_testnet = false);
+        PrivateKey(const uint8_t secret_arr[32], bool use_compressed = true, bool use_testnet = false);
         PrivateKey(const char * wifArr);
         PrivateKey(const String wifString);
         ~PrivateKey();
 
         bool isValid() const;
+
+        void setSecret(const uint8_t secret_arr[32]){ memcpy(secret, secret_arr, 32); };
+        void getSecret(uint8_t buffer[32]) const{ memcpy(buffer, secret, 32); };
 
         // TODO: remove `compressed` from here. PublicKey already has it.
         bool compressed;    // set to true if you want to use compressed public key format

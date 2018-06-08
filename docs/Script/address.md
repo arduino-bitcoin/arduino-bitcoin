@@ -15,7 +15,7 @@ Returns address corresponding to the script. If the [type()](type.md) of the scr
 
 ## Returns
 
-Returns a `String` with address corresponding to the script. `"Unknown address"` if address [type()](type.md) is undetermined.
+`String` with address corresponding to the script. `"Unknown address"` if address [type()](type.md) is undetermined.
 
 ## See also
 

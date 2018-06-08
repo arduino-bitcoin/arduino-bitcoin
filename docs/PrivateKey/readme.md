@@ -18,10 +18,11 @@ If you pass PrivateKey to `Serial` or any other `Stream` (like display or file o
 - [address( )](address.md)
 - [segwitAddress( )](segwitAddress.md)
 - [nestedSegwitAddress( )](nestedSegwitAddress.md)
+- [setSecret( )](setSecret.md)
+- [getSecret( )](getSecret.md)
 
 ## Properties
 
-- [secret](secret.md)
 - [compressed](compressed.md)
 - [testnet](testnet.md)
 
