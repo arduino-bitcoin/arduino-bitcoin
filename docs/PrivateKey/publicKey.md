@@ -1,6 +1,6 @@
 # PrivateKey.publicKey( )
 
-Returns an instance of the [PublicKey](../PublicKey/PublicKey.md) class corresponding to the PrivateKey.
+Returns an instance of the [PublicKey](../PublicKey/readme.md) class corresponding to the PrivateKey.
 
 ## Syntax
 
@@ -13,3 +13,7 @@ Nothing
 ## Returns
 
 Instance of the `PublicKey` class.
+
+## See also
+
+- [PublicKey class](../PublicKey/readme.md)

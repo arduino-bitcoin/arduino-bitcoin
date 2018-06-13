@@ -8,7 +8,7 @@ Returns a Pay-To-Witness-Pubkey-Hash nested in Pay-To-Script-Hash (`P2SH_P2WPKH`
 
 `privateKey.nestedSegwitAddress()`
 
-`privateKey.nestedSegwitAddress(char address[], size_t len)`
+`privateKey.nestedSegwitAddress(address, len)`
 
 ## Parameters
 

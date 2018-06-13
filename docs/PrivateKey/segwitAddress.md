@@ -8,7 +8,7 @@ Returns a Pay-To-Witness-Pubkey-Hash (`P2WPKH`) bech32-encoded address correspon
 
 `privateKey.segwitAddress()`
 
-`privateKey.segwitAddress(char address[], size_t len)`
+`privateKey.segwitAddress(address, len)`
 
 ## Parameters
 
