@@ -23,12 +23,12 @@ void setup() {
   HDPrivateKey hdKey;
 
   Serial.println("Generating HD wallet seed from mnemonic... It will take a few seconds...");
-  hdKey.fromMnemonic(mnemonic, password, testnet);
+//  hdKey.fromMnemonic(mnemonic, password, testnet);
   // or from seed:  
-//  hdKey.fromSeed(seed, testnet);
+  hdKey.fromSeed(seed, testnet);
 
   Serial.print  ("Root key: ");
-  Serial.println(hdKey.xprv());
+  Serial.println(hdKey);
 
   // BIP-44 master key
   // for testnet people use 44'/1'/0', for mainnet - 44'/0'/0'
@@ -39,6 +39,9 @@ void setup() {
   Serial.print("\nAccount master public key:");
   Serial.println(accountKey.xpub());
 
+  HDPublicKey hdPublicKey("xpub6DHZ8STMo79tUFn1qynnpKrK5SPRNww3KMwHYWPNTVparaCWTmzcMmSTDnYdWXcxRPQvzNrgJwepAt9Qg83gMC1N9bjuHojUGaixH6XfqqE");
+  Serial.println(hdPublicKey);
+  
   // First 5 receiving addresses
   HDPrivateKey receivingKey = accountKey.child(0);
   Serial.println("\nFirst 5 receiving addresses:");

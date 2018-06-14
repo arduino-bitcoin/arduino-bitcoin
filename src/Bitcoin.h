@@ -213,109 +213,121 @@ public:
     TODO: move secret to private, make setSecret, getSecret
     TODO: make exportable flag in constructor or lock() function to disable export
 */
-class PrivateKey{
-        PublicKey pubKey;  // corresponding point on curve ( secret * G )
-    public:
-        uint8_t secret[32]; // 32-byte secret
+class PrivateKey : public Printable{
+    PublicKey pubKey;  // corresponding point on curve ( secret * G )
+public:
+    uint8_t secret[32]; // 32-byte secret
 
-        PrivateKey();
-        PrivateKey(const uint8_t secret_arr[32], bool use_compressed = true, bool use_testnet = false);
-        PrivateKey(const char * wifArr);
-        PrivateKey(const String wifString);
-        ~PrivateKey();
+    PrivateKey();
+    PrivateKey(const uint8_t secret_arr[32], bool use_compressed = true, bool use_testnet = false);
+    PrivateKey(const char * wifArr);
+    PrivateKey(const String wifString);
+    ~PrivateKey();
 
-        bool isValid() const;
+    bool isValid() const;
 
-        void setSecret(const uint8_t secret_arr[32]){ memcpy(secret, secret_arr, 32); };
-        void getSecret(uint8_t buffer[32]) const{ memcpy(buffer, secret, 32); };
+    void setSecret(const uint8_t secret_arr[32]){ memcpy(secret, secret_arr, 32); };
+    void getSecret(uint8_t buffer[32]) const{ memcpy(buffer, secret, 32); };
 
-        // TODO: remove `compressed` from here. PublicKey already has it.
-        bool compressed;    // set to true if you want to use compressed public key format
-        bool testnet;       // set to true for testnet
+    // TODO: remove `compressed` from here. PublicKey already has it.
+    bool compressed;    // set to true if you want to use compressed public key format
+    bool testnet;       // set to true for testnet
 
-        int wif(char * wifArr, size_t len) const; // writes wallet import format string to wif array. 51 or 52 characters are required.
-        String wif() const;
-        int fromWIF(const char * wifArr, size_t wifSize);
-        int fromWIF(const char * wifArr);
-        PublicKey publicKey() const;
-        Signature sign(const uint8_t hash[32]) const; // pass 32-byte hash of the message here
+    int wif(char * wifArr, size_t len) const; // writes wallet import format string to wif array. 51 or 52 characters are required.
+    String wif() const;
+    int fromWIF(const char * wifArr, size_t wifSize);
+    int fromWIF(const char * wifArr);
+    PublicKey publicKey() const;
+    Signature sign(const uint8_t hash[32]) const; // pass 32-byte hash of the message here
 
-        // Aliases for .publicKey().address() etc
-        int address(char * address, size_t len) const;
-        String address() const;
-        int segwitAddress(char * address, size_t len) const;
-        String segwitAddress() const;
-        int nestedSegwitAddress(char * address, size_t len) const;
-        String nestedSegwitAddress() const;
+    // Aliases for .publicKey().address() etc
+    int address(char * address, size_t len) const;
+    String address() const;
+    int segwitAddress(char * address, size_t len) const;
+    String segwitAddress() const;
+    int nestedSegwitAddress(char * address, size_t len) const;
+    String nestedSegwitAddress() const;
 
-        // operators overloading
-        bool operator==(const PrivateKey& other) const;
-        bool operator==(const int& other) const;
-        bool operator!=(const PrivateKey& other) const;
-        bool operator!=(const int& other) const;
-        PrivateKey& operator= (const char * s) { this->fromWIF(s); return *this; }
-        operator String(){ return wif(); };
-        explicit operator bool() const { return isValid(); };
+    // Prints private key in WIF format to any stream / display / file
+    // For example allows to do Serial.print(privateKey)
+    size_t printTo(Print& p) const;
+
+    // operators overloading
+    bool operator==(const PrivateKey& other) const;
+    bool operator==(const int& other) const;
+    bool operator!=(const PrivateKey& other) const;
+    bool operator!=(const int& other) const;
+    PrivateKey& operator= (const char * s) { this->fromWIF(s); return *this; }
+    operator String(){ return wif(); };
+    explicit operator bool() const { return isValid(); };
 };
 
 /*
     HD Private Key class.
     Classes are defined in HDWallet.cpp
 */
-class HDPrivateKey{
-    public:
-        HDPrivateKey();
-        HDPrivateKey(uint8_t secret[32], uint8_t chain_code[32], 
-                     uint8_t key_depth = 0,
-                     uint8_t fingerprint_arr[4] = NULL,
-                     uint32_t childnumber = 0,
-                     bool use_testnet = false);
-        HDPrivateKey(char xprvArr[]);
-        ~HDPrivateKey();
+class HDPrivateKey : public Printable{
+public:
+    HDPrivateKey();
+    HDPrivateKey(const uint8_t secret[32], const uint8_t chain_code[32], 
+                 uint8_t key_depth = 0,
+                 const uint8_t fingerprint_arr[4] = NULL,
+                 uint32_t childnumber = 0,
+                 bool use_testnet = false);
+    HDPrivateKey(const char xprvArr[]);
+    ~HDPrivateKey();
 
-        PrivateKey privateKey;
-        uint8_t chainCode[32];
-        uint8_t depth;
-        uint8_t fingerprint[4];
-        uint32_t childNumber;
+    PrivateKey privateKey;
+    uint8_t chainCode[32];
+    uint8_t depth;
+    uint8_t fingerprint[4];
+    uint32_t childNumber;
 
-        int fromSeed(uint8_t seed[64], bool use_testnet = false);
-        int fromMnemonic(char mnemonic[], char password[], bool use_testnet = false);
-        int xprv(char arr[], size_t len);
-        int xpub(char arr[], size_t len);
-        String xprv();
-        String xpub();
+    int fromSeed(const uint8_t seed[64], bool use_testnet = false);
+    int fromMnemonic(const char * mnemonic, const char * password, bool use_testnet = false);
+    int xprv(char * arr, size_t len) const;
+    int xpub(char * arr, size_t len) const;
+    String xprv() const;
+    String xpub() const;
 
-        HDPrivateKey child(uint32_t index);
-        HDPrivateKey hardenedChild(uint32_t index);
-        bool isValid();
-        operator String(){ return xprv(); };
+    // Prints HD private key in base58 encoding (as xprv...) to any stream / display / file
+    // For example allows to do Serial.print(privateKey)
+    size_t printTo(Print& p) const;
+
+    HDPrivateKey child(uint32_t index) const;
+    HDPrivateKey hardenedChild(uint32_t index) const;
+    bool isValid() const;
+    operator String(){ return xprv(); };
 };
 
-class HDPublicKey{
-    public:
-        HDPublicKey();
-        HDPublicKey(uint8_t point[64], uint8_t chain_code[32], 
-                     uint8_t key_depth = 0,
-                     uint8_t fingerprint_arr[4] = NULL,
-                     uint32_t childnumber = 0,
-                     bool use_testnet = false);
-        HDPublicKey(char xpubArr[]);
-        ~HDPublicKey();
+class HDPublicKey : public Printable{
+public:
+    HDPublicKey();
+    HDPublicKey(const uint8_t point[64], const uint8_t chain_code[32], 
+                 uint8_t key_depth = 0,
+                 const uint8_t fingerprint_arr[4] = NULL,
+                 uint32_t childnumber = 0,
+                 bool use_testnet = false);
+    HDPublicKey(const char * xpubArr);
+    ~HDPublicKey();
 
-        PublicKey publicKey;
-        uint8_t chainCode[32];
-        uint8_t depth;
-        uint8_t fingerprint[4];
-        uint32_t childNumber;
-        bool testnet = false;
+    PublicKey publicKey;
+    uint8_t chainCode[32];
+    uint8_t depth;
+    uint8_t fingerprint[4];
+    uint32_t childNumber;
+    bool testnet = false;
 
-        int xpub(char arr[], size_t len);
-        String xpub();
+    int xpub(char * arr, size_t len) const;
+    String xpub() const;
 
-        HDPublicKey child(uint32_t index);
-        bool isValid();
-        operator String(){ return xpub(); };
+    // Prints HD public key in base58 encoding (as xpub...) to any stream / display / file
+    // For example allows to do Serial.print(privateKey)
+    size_t printTo(Print& p) const;
+
+    HDPublicKey child(uint32_t index) const;
+    bool isValid() const;
+    operator String(){ return xpub(); };
 };
 
 /*

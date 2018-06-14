@@ -38,10 +38,10 @@ HDPrivateKey::HDPrivateKey(void){
     memset(fingerprint, 0, 4);
     childNumber = 0;
 }
-HDPrivateKey::HDPrivateKey(uint8_t secret[32],
-                           uint8_t chain_code[32],
+HDPrivateKey::HDPrivateKey(const uint8_t secret[32],
+                           const uint8_t chain_code[32],
                            uint8_t key_depth,
-                           uint8_t fingerprint_arr[4],
+                           const uint8_t fingerprint_arr[4],
                            uint32_t child_number,
                            bool use_testnet){
 
@@ -55,7 +55,7 @@ HDPrivateKey::HDPrivateKey(uint8_t secret[32],
         memset(fingerprint, 0, 4);
     }
 }
-HDPrivateKey::HDPrivateKey(char xprvArr[]){
+HDPrivateKey::HDPrivateKey(const char * xprvArr){
     size_t xprvLen = strlen(xprvArr);
     byte arr[85] = { 0 };
     size_t l = fromBase58Check(xprvArr, xprvLen, arr, sizeof(arr));
@@ -87,7 +87,7 @@ HDPrivateKey::~HDPrivateKey(void) {
     memset(chainCode, 0, 32);
     // privateKey will clean everything up by itself
 }
-int HDPrivateKey::fromSeed(uint8_t seed[64], bool use_testnet){
+int HDPrivateKey::fromSeed(const uint8_t seed[64], bool use_testnet){
     uint8_t raw[64] = { 0 };
     SHA512 sha;
     char key[] = "Bitcoin seed";
@@ -98,7 +98,7 @@ int HDPrivateKey::fromSeed(uint8_t seed[64], bool use_testnet){
     privateKey = PrivateKey(raw, true, use_testnet);
     memcpy(chainCode, raw+32, 32);
 }
-int HDPrivateKey::fromMnemonic(char mnemonic[], char password[], bool use_testnet){
+int HDPrivateKey::fromMnemonic(const char * mnemonic, const char * password, bool use_testnet){
     uint8_t seed[64] = { 0 };
     uint8_t ind[4] = { 0, 0, 0, 1 };
     char salt[] = "mnemonic";
@@ -123,10 +123,10 @@ int HDPrivateKey::fromMnemonic(char mnemonic[], char password[], bool use_testne
     }
     fromSeed(seed, use_testnet);
 }
-bool HDPrivateKey::isValid(){
+bool HDPrivateKey::isValid() const{
     return privateKey.isValid();
 }
-int HDPrivateKey::xprv(char arr[], size_t len){
+int HDPrivateKey::xprv(char * arr, size_t len) const{
     uint8_t hex[78] = { 0 };
     if(privateKey.testnet){
         memcpy(hex, XPRV_TESTNET_PREFIX, 4);
@@ -142,12 +142,17 @@ int HDPrivateKey::xprv(char arr[], size_t len){
     memcpy(hex+46, privateKey.secret, 32);
     return toBase58Check(hex, sizeof(hex), arr, len);
 }
-String HDPrivateKey::xprv(){
+String HDPrivateKey::xprv() const{
     char arr[112] = { 0 };
     xprv(arr, sizeof(arr));
     return String(arr);
 }
-int HDPrivateKey::xpub(char arr[], size_t len){
+size_t HDPrivateKey::printTo(Print &p) const{
+    char arr[112] = { 0 };
+    xprv(arr, sizeof(arr));
+    return p.print(arr);
+}
+int HDPrivateKey::xpub(char * arr, size_t len) const{
     uint8_t hex[111] = { 0 }; // TODO: real length, in xpub compressed = true
     if(privateKey.testnet){
         memcpy(hex, XPUB_TESTNET_PREFIX, 4);
@@ -166,13 +171,13 @@ int HDPrivateKey::xpub(char arr[], size_t len){
     memcpy(hex+45, sec, secLen);
     return toBase58Check(hex, 45+secLen, arr, len);
 }
-String HDPrivateKey::xpub(){
+String HDPrivateKey::xpub() const{
     char arr[112] = { 0 };
     xpub(arr, sizeof(arr));
     return String(arr);
 }
 // TODO: refactor to single function!
-HDPrivateKey HDPrivateKey::child(uint32_t index){
+HDPrivateKey HDPrivateKey::child(uint32_t index) const{
     HDPrivateKey child;
 
     uint8_t sec[65] = { 0 };
@@ -246,7 +251,7 @@ HDPrivateKey HDPrivateKey::child(uint32_t index){
     return child;
 }
 
-HDPrivateKey HDPrivateKey::hardenedChild(uint32_t index){
+HDPrivateKey HDPrivateKey::hardenedChild(uint32_t index) const{
     // TODO: refactor, the same used in two functions
     HDPrivateKey child;
 
@@ -331,10 +336,10 @@ HDPublicKey::HDPublicKey(void){
     memset(fingerprint, 0, 4);
     childNumber = 0;
 }
-HDPublicKey::HDPublicKey(uint8_t point[64],
-                           uint8_t chain_code[32],
+HDPublicKey::HDPublicKey(const uint8_t point[64],
+                           const uint8_t chain_code[32],
                            uint8_t key_depth,
-                           uint8_t fingerprint_arr[4],
+                           const uint8_t fingerprint_arr[4],
                            uint32_t child_number,
                            bool use_testnet){
 
@@ -349,7 +354,7 @@ HDPublicKey::HDPublicKey(uint8_t point[64],
         memset(fingerprint, 0, 4);
     }
 }
-HDPublicKey::HDPublicKey(char xpubArr[]){
+HDPublicKey::HDPublicKey(const char * xpubArr){
     size_t xpubLen = strlen(xpubArr);
     byte arr[85] = { 0 };
     size_t l = fromBase58Check(xpubArr, xpubLen, arr, sizeof(arr));
@@ -380,10 +385,10 @@ HDPublicKey::~HDPublicKey(void) {
     // erase chain code from memory
     memset(chainCode, 0, 32);
 }
-bool HDPublicKey::isValid(){
+bool HDPublicKey::isValid() const{
     return publicKey.isValid();
 }
-int HDPublicKey::xpub(char arr[], size_t len){
+int HDPublicKey::xpub(char * arr, size_t len) const{
     uint8_t hex[111] = { 0 }; // TODO: real length, in xpub compressed = true
     if(testnet){
         memcpy(hex, XPUB_TESTNET_PREFIX, 4);
@@ -402,12 +407,17 @@ int HDPublicKey::xpub(char arr[], size_t len){
     memcpy(hex+45, sec, secLen);
     return toBase58Check(hex, 45+secLen, arr, len);
 }
-String HDPublicKey::xpub(){
+String HDPublicKey::xpub() const{
     char arr[114] = { 0 };
     xpub(arr, sizeof(arr));
     return String(arr);
 }
-HDPublicKey HDPublicKey::child(uint32_t index){
+size_t HDPublicKey::printTo(Print &p) const{
+    char arr[114] = { 0 };
+    xpub(arr, sizeof(arr));
+    return p.print(arr);
+}
+HDPublicKey HDPublicKey::child(uint32_t index) const{
     HDPublicKey child;
 
     uint8_t sec[65] = { 0 };

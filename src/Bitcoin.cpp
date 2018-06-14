@@ -435,6 +435,11 @@ String PrivateKey::wif() const{
     wif(wifString, sizeof(wifString));
     return String(wifString);
 }
+size_t PrivateKey::printTo(Print &p) const{
+    char wifString[53] = { 0 };
+    size_t l = wif(wifString, sizeof(wifString));
+    return p.print(wifString);
+}
 int PrivateKey::fromWIF(const char * wifArr, size_t wifSize){
     byte arr[40] = { 0 };
     size_t l = fromBase58Check(wifArr, wifSize, arr, sizeof(arr));
