@@ -23,11 +23,12 @@
 #define _SEGWIT_ADDR_H_ 1
 
 #include <stdint.h>
-
 #ifdef __cplusplus
 extern "C"
 {
 #endif
+
+#define MAX_BECH32_SIZE 1000 // for lightning
 
 /** Encode a SegWit address
  *
@@ -102,6 +103,8 @@ int bech32_decode(
     size_t *data_len,
     const char *input
 );
+
+int convert_bits(uint8_t* out, size_t* outlen, int outbits, const uint8_t* in, size_t inlen, int inbits, int pad);
 
 #ifdef __cplusplus
 } /* end of extern "C" */

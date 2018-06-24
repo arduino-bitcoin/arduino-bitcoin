@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <stdint.h>
 #include <stddef.h>
+#include "utility/segwit_addr.h"
 
 // TODO: get rid of these blahLength functions, they are redundant
 //       just stop when array is full and return errorcode
