@@ -87,16 +87,19 @@ HDPrivateKey::~HDPrivateKey(void) {
     memset(chainCode, 0, 32);
     // privateKey will clean everything up by itself
 }
-int HDPrivateKey::fromSeed(const uint8_t seed[64], bool use_testnet){
+int HDPrivateKey::fromSeed(const uint8_t * seed, size_t seedSize, bool use_testnet){
     uint8_t raw[64] = { 0 };
     SHA512 sha;
     char key[] = "Bitcoin seed";
     sha.resetHMAC(key, strlen(key));
-    sha.update(seed, 64);
+    sha.update(seed, seedSize);
     sha.finalizeHMAC(key, strlen(key), raw, sizeof(raw));
     // sha512Hmac((byte *)key, strlen(key), seed, 64, raw);
     privateKey = PrivateKey(raw, true, use_testnet);
     memcpy(chainCode, raw+32, 32);
+}
+int HDPrivateKey::fromSeed(const uint8_t seed[64], bool use_testnet){
+    fromSeed(seed, 64);
 }
 int HDPrivateKey::fromMnemonic(const char * mnemonic, const char * password, bool use_testnet){
     uint8_t seed[64] = { 0 };

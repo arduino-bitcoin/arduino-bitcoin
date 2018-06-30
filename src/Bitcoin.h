@@ -283,6 +283,7 @@ public:
     uint8_t fingerprint[4];
     uint32_t childNumber;
 
+    int fromSeed(const uint8_t * seed, size_t seedSize, bool use_testnet);
     int fromSeed(const uint8_t seed[64], bool use_testnet = false);
     int fromMnemonic(const char * mnemonic, const char * password, bool use_testnet = false);
     int xprv(char * arr, size_t len) const;
