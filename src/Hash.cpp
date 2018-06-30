@@ -1,6 +1,6 @@
 #include <stdint.h>
 #include <string.h>
-#include "hash.h"
+#include "Hash.h"
 #include "utility/rmd160.h"
 #include "utility/sha256.h"
 #include "utility/sha512.h"
