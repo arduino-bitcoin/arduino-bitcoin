@@ -351,6 +351,7 @@ Script Script::scriptPubkey() const{
 }
 
 size_t Script::printTo(Print& p) const{
+    // p.print("Print!");
     if(scriptLen>0){
         return toHex(scriptArray, scriptLen, p);
     }else{

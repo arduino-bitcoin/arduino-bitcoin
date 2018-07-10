@@ -1,5 +1,6 @@
 #include <Bitcoin.h>
-#define VERBOSE false
+#include <OpCodes.h>
+#define VERBOSE true
 
 void testType(char * hex, int type){
   byte buf[255];
@@ -35,6 +36,22 @@ void testAddress(char * hex, bool testnet, String addr){
     Serial.println("ERROR. Test failed");
   }
 }
+
+void testPush(){
+  Script script;
+  script.push(OP_DUP);
+  script.push(OP_HASH160);
+  byte h160[20] = { 0 };
+  fromHex("21df06f1b8f6b989469b6da0209527857794d736", h160, sizeof(h160));
+  script.push(sizeof(h160)); // length
+  script.push(h160, sizeof(h160));
+  script.push(OP_EQUALVERIFY);
+  script.push(OP_CHECKSIG);
+  Serial.println(script);
+  // TODO: check automatically
+  Serial.println("Done");
+}
+
 void setup() {
   Serial.begin(9600);
   while(!Serial){
@@ -60,6 +77,9 @@ void setup() {
   testAddress("a91474d691da1574e6b3c192ecfb52cc8984ee7b6c5687", true, "2N3u1R6uwQfuobCqbCgBkpsgBxvr1tZpe7B");
   testAddress("0014751e76e8199196d454941c45d1b3a323f1433bd6", false, "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4");
   testAddress("00201863143c14c5166804bd19203356da136c985678cd4d27a1b8c6329604903262", false, "bc1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3qccfmv3");
+
+  Serial.println("Script push test:");
+  testPush();
 }
 
 void loop() {
