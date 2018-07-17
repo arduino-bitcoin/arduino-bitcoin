@@ -284,8 +284,8 @@ public:
     uint32_t childNumber;
 
     int fromSeed(const uint8_t * seed, size_t seedSize, bool use_testnet);
-    int fromSeed(const uint8_t seed[64], bool use_testnet = false);
-    int fromMnemonic(const char * mnemonic, const char * password, bool use_testnet = false);
+    // int fromSeed(const uint8_t seed[64], bool use_testnet = false);
+    int fromMnemonic(const char * mnemonic, size_t mnemonicSize, const char * password, size_t passwordSize, bool use_testnet = false);
     int xprv(char * arr, size_t len) const;
     int xpub(char * arr, size_t len) const;
     String xprv() const;

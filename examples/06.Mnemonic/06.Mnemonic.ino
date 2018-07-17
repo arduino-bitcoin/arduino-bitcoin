@@ -23,9 +23,9 @@ void setup() {
   HDPrivateKey hdKey;
 
   Serial.println("Generating HD wallet seed from mnemonic... It will take a few seconds...");
-//  hdKey.fromMnemonic(mnemonic, password, testnet);
-  // or from seed:  
-  hdKey.fromSeed(seed, testnet);
+  hdKey.fromMnemonic(mnemonic, strlen(mnemonic), password, strlen(password), testnet);
+  // or from seed: 
+//  hdKey.fromSeed(seed, sizeof(seed), testnet);
 
   Serial.print  ("Root key: ");
   Serial.println(hdKey);

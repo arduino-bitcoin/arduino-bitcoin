@@ -98,10 +98,10 @@ int HDPrivateKey::fromSeed(const uint8_t * seed, size_t seedSize, bool use_testn
     privateKey = PrivateKey(raw, true, use_testnet);
     memcpy(chainCode, raw+32, 32);
 }
-int HDPrivateKey::fromSeed(const uint8_t seed[64], bool use_testnet){
-    fromSeed(seed, 64);
-}
-int HDPrivateKey::fromMnemonic(const char * mnemonic, const char * password, bool use_testnet){
+// int HDPrivateKey::fromSeed(const uint8_t seed[64], bool use_testnet){
+//     fromSeed(seed, 64);
+// }
+int HDPrivateKey::fromMnemonic(const char * mnemonic, size_t mnemonicSize, const char * password, size_t passwordSize, bool use_testnet){
     uint8_t seed[64] = { 0 };
     uint8_t ind[4] = { 0, 0, 0, 1 };
     char salt[] = "mnemonic";
@@ -109,22 +109,22 @@ int HDPrivateKey::fromMnemonic(const char * mnemonic, const char * password, boo
 
     // first round
     SHA512 sha;
-    sha.resetHMAC(mnemonic, strlen(mnemonic));
+    sha.resetHMAC(mnemonic, mnemonicSize);
     sha.update(salt, strlen(salt));
-    sha.update(password, strlen(password));
+    sha.update(password, passwordSize);
     sha.update(ind, sizeof(ind));
-    sha.finalizeHMAC(mnemonic, strlen(mnemonic), u, sizeof(u));
+    sha.finalizeHMAC(mnemonic, mnemonicSize, u, sizeof(u));
     memcpy(seed, u, 64);
     // other rounds
     for(int i=1; i<PBKDF2_ROUNDS; i++){
-        sha.resetHMAC(mnemonic, strlen(mnemonic));
+        sha.resetHMAC(mnemonic, mnemonicSize);
         sha.update(u, sizeof(u));
-        sha.finalizeHMAC(mnemonic, strlen(mnemonic), u, sizeof(u));
+        sha.finalizeHMAC(mnemonic, mnemonicSize, u, sizeof(u));
         for(int j=0; j<sizeof(seed); j++){
             seed[j] = seed[j] ^ u[j];
         }
     }
-    fromSeed(seed, use_testnet);
+    fromSeed(seed, sizeof(seed), use_testnet);
 }
 bool HDPrivateKey::isValid() const{
     return privateKey.isValid();
