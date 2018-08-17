@@ -299,6 +299,7 @@ public:
     HDPrivateKey hardenedChild(uint32_t index) const;
     bool isValid() const;
     operator String(){ return xprv(); };
+    explicit operator bool() const { return isValid(); };
 };
 
 class HDPublicKey : public Printable{
@@ -329,6 +330,7 @@ public:
     HDPublicKey child(uint32_t index) const;
     bool isValid() const;
     operator String(){ return xpub(); };
+    explicit operator bool() const { return isValid(); };
 };
 
 /*
@@ -408,6 +410,9 @@ public:
     Transaction(Stream &s){ parse(s); };
     Transaction(byte raw[], size_t len){ parse(raw, len); };
     ~Transaction();
+
+    Transaction(Transaction const &other);
+    Transaction &operator=(Transaction const &other);
 
     uint32_t version = 1;
     TransactionInput * txIns = NULL;

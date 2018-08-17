@@ -80,7 +80,7 @@ uint8_t hexToVal(char c){
 
 size_t fromHex(const char * hex, size_t hexLen, uint8_t * array, size_t arraySize){
     memset(array, 0, arraySize);
-    // ignoring all non-hex characters
+    // ignoring all non-hex characters in the beginning
     size_t offset = 0;
     while(offset < hexLen){
         byte v = hexToVal(hex[offset]);
@@ -91,15 +91,11 @@ size_t fromHex(const char * hex, size_t hexLen, uint8_t * array, size_t arraySiz
         }
     }
     hexLen -= offset;
-    if((hexLen % 2 != 0) || (arraySize < hexLen/2)){
-        return 0;
-    }
     for(int i=0; i<hexLen/2; i++){
         byte v1 = hexToVal(hex[offset+2*i]);
         byte v2 = hexToVal(hex[offset+2*i+1]);
-        if((v1 > 0x0F) || (v2 > 0x0F)){ // if invalid char
-            memset(array, 0, arraySize);
-            return 0;
+        if((v1 > 0x0F) || (v2 > 0x0F)){ // if invalid char stop parsing
+            return i;
         }
         array[i] = (v1<<4) | v2;
     }
@@ -235,14 +231,17 @@ size_t fromBase58Length(const char * array, size_t arraySize){
 }
 
 size_t fromBase58(const char * encoded, size_t encodedSize, uint8_t * output, size_t outputSize){
-
     memset(output, 0, outputSize);
 
+    size_t l;
     // looking for the end of char array
-    size_t l = strlen(encoded);
-    if(l < encodedSize){
-        encodedSize = l;
+    for(l=0; l<encodedSize; l++){
+        char * pch = strchr(BASE58_CHARS, encoded[l]);
+        if(pch==NULL){ // char not in the alphabet
+            break;
+        }
     }
+    encodedSize = l;
     size_t size = fromBase58Length(encoded, encodedSize);
     uint8_t * tmp;
     tmp = (uint8_t *) calloc(size, sizeof(uint8_t));

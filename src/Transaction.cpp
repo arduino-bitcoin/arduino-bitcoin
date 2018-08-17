@@ -254,6 +254,36 @@ Transaction::~Transaction(void){
         free(txOuts);
     }
 }
+Transaction::Transaction(Transaction const &other){
+    // TODO: just serialize() and parse()
+    version = other.version;
+    locktime = other.locktime;
+    inputsNumber = other.inputsNumber;
+    txIns = (TransactionInput *) calloc( inputsNumber, sizeof(TransactionInput));
+    for(int i=0; i<inputsNumber; i++){
+        txIns[i] = other.txIns[i];
+    }
+    outputsNumber = other.outputsNumber;
+    txOuts = (TransactionOutput *) calloc( outputsNumber, sizeof(TransactionOutput));
+    for(int i=0; i<outputsNumber; i++){
+        txOuts[i] = other.txOuts[i];
+    }
+}
+Transaction &Transaction::operator=(Transaction const &other){ 
+    version = other.version;
+    locktime = other.locktime;
+    inputsNumber = other.inputsNumber;
+    txIns = (TransactionInput *) calloc( inputsNumber, sizeof(TransactionInput));
+    for(int i=0; i<inputsNumber; i++){
+        txIns[i] = other.txIns[i];
+    }
+    outputsNumber = other.outputsNumber;
+    txOuts = (TransactionOutput *) calloc( outputsNumber, sizeof(TransactionOutput));
+    for(int i=0; i<outputsNumber; i++){
+        txOuts[i] = other.txOuts[i];
+    }
+    return *this; 
+};
 size_t Transaction::parse(Stream &s){
     bool is_segwit = false;
     if(inputsNumber > 0){
