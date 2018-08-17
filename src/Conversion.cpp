@@ -80,12 +80,23 @@ uint8_t hexToVal(char c){
 
 size_t fromHex(const char * hex, size_t hexLen, uint8_t * array, size_t arraySize){
     memset(array, 0, arraySize);
+    // ignoring all non-hex characters
+    size_t offset = 0;
+    while(offset < hexLen){
+        byte v = hexToVal(hex[offset]);
+        if(v > 0x0F){ // if invalid char
+            offset++;
+        }else{
+            break;
+        }
+    }
+    hexLen -= offset;
     if((hexLen % 2 != 0) || (arraySize < hexLen/2)){
         return 0;
     }
     for(int i=0; i<hexLen/2; i++){
-        byte v1 = hexToVal(hex[2*i]);
-        byte v2 = hexToVal(hex[2*i+1]);
+        byte v1 = hexToVal(hex[offset+2*i]);
+        byte v2 = hexToVal(hex[offset+2*i+1]);
         if((v1 > 0x0F) || (v2 > 0x0F)){ // if invalid char
             memset(array, 0, arraySize);
             return 0;
