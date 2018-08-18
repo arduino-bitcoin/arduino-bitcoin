@@ -337,10 +337,24 @@ HDPrivateKey HDPrivateKey::hardenedChild(uint32_t index) const{
     uint8_t hash[20] = { 0 };
     hash160(sec, l, hash);
     memcpy(child.fingerprint, hash, 4);
+    child.depth = depth+1;
+    // bip44, bip49, bip84
+    child.type = type;
+    if(depth == 0){
+        switch(index){
+            case 44:
+                child.type = P2PKH;
+                break;
+            case 49:
+                child.type = P2SH_P2WPKH;
+                break;
+            case 84:
+                child.type = P2WPKH;
+                break;
+        }
+    }
     index += (1<<31);
     child.childNumber = index;
-    child.depth = depth+1;
-    child.type = type;
 
     uint8_t data[37] = { 0 };
     memcpy(data+1, privateKey.secret, 32);
