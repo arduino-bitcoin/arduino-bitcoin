@@ -28,7 +28,8 @@
 #define BITCOIN_MAINNET_P2SH   0x05
 #define BITCOIN_TESTNET_P2SH   0xC4
 
-// TODO: think if we need P2PKH_COMPRESSED/UNCOMPRESSED
+// HD key types
+#define UNKNOWN_HD_TYPE        0
 #define P2PKH                  1
 #define P2SH                   2
 #define P2WPKH                 3
@@ -273,7 +274,8 @@ public:
                  uint8_t key_depth = 0,
                  const uint8_t fingerprint_arr[4] = NULL,
                  uint32_t childnumber = 0,
-                 bool use_testnet = false);
+                 bool use_testnet = false,
+                 uint8_t key_type = UNKNOWN_HD_TYPE);
     HDPrivateKey(const char xprvArr[]);
     ~HDPrivateKey();
 
@@ -282,6 +284,7 @@ public:
     uint8_t depth;
     uint8_t fingerprint[4];
     uint32_t childNumber;
+    uint8_t type = UNKNOWN_HD_TYPE;
 
     int fromSeed(const uint8_t * seed, size_t seedSize, bool use_testnet);
     // int fromSeed(const uint8_t seed[64], bool use_testnet = false);
@@ -290,6 +293,8 @@ public:
     int xpub(char * arr, size_t len) const;
     String xprv() const;
     String xpub() const;
+
+    String address() const;
 
     // Prints HD private key in base58 encoding (as xprv...) to any stream / display / file
     // For example allows to do Serial.print(privateKey)
@@ -309,7 +314,8 @@ public:
                  uint8_t key_depth = 0,
                  const uint8_t fingerprint_arr[4] = NULL,
                  uint32_t childnumber = 0,
-                 bool use_testnet = false);
+                 bool use_testnet = false,
+                 uint8_t key_type = UNKNOWN_HD_TYPE);
     HDPublicKey(const char * xpubArr);
     ~HDPublicKey();
 
@@ -318,10 +324,13 @@ public:
     uint8_t depth;
     uint8_t fingerprint[4];
     uint32_t childNumber;
+    uint8_t type = UNKNOWN_HD_TYPE;
     bool testnet = false;
 
     int xpub(char * arr, size_t len) const;
     String xpub() const;
+
+    String address() const;
 
     // Prints HD public key in base58 encoding (as xpub...) to any stream / display / file
     // For example allows to do Serial.print(privateKey)
@@ -449,9 +458,6 @@ public:
     Signature signInput(uint8_t inputIndex, PrivateKey pk);
     Signature signInput(uint8_t inputIndex, PrivateKey pk, Script redeemScript);
 
-    // TODO:
-    // String sign(HDPrivateKey key);
-    // TODO: copy()
     // TODO: sort() - bip69, Lexicographical Indexing of Transaction Inputs and Outputs
     operator String();
 };

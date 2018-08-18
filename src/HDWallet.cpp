@@ -11,24 +11,37 @@
 
 // ---------------------------------------------------------------- HDPrivateKey class
 
-// TODO: add yprv, zprv, uprv, vprv and store address type:
+// HD key prefixes are described here:
 // https://github.com/satoshilabs/slips/blob/master/slip-0132.md
 // useful tool: in https://iancoleman.io/bip39/
-// Bitcoin 0x0488b21e - xpub   0x0488ade4 - xprv   P2PKH or P2SH
-// Bitcoin 0x049d7cb2 - ypub   0x049d7878 - yprv   P2WPKH in P2SH
-// Bitcoin 0x0295b43f - Ypub   0x0295b005 - Yprv   P2WSH in P2SH
-// Bitcoin 0x04b24746 - zpub   0x04b2430c - zprv   P2WPKH
-// Bitcoin 0x02aa7ed3 - Zpub   0x02aa7a99 - Zprv   P2WSH
-// Bitcoin Testnet 0x043587cf - tpub   0x04358394 - tprv   P2PKH or P2SH
-// Bitcoin Testnet 0x044a5262 - upub   0x044a4e28 - uprv   P2WPKH in P2SH
-// Bitcoin Testnet 0x045f1cf6 - vpub   0x045f18bc - vprv   P2WPKH
-// Bitcoin Testnet 0x02575483 - Vpub   0x02575048 - Vprv   P2WSH
 
-uint8_t XPUB_MAINNET_PREFIX[4] = { 0x04, 0x88, 0xB2, 0x1E };
-uint8_t XPRV_MAINNET_PREFIX[4] = { 0x04, 0x88, 0xAD, 0xE4 };
+// mainnet prefixes:
 
-uint8_t XPUB_TESTNET_PREFIX[4] = { 0x04, 0x35, 0x87, 0xCF };
-uint8_t XPRV_TESTNET_PREFIX[4] = { 0x04, 0x35, 0x83, 0x94 };
+// unknown or P2PKH
+uint8_t XPUB_PREFIX[4] = { 0x04, 0x88, 0xb2, 0x1e };
+uint8_t XPRV_PREFIX[4] = { 0x04, 0x88, 0xad, 0xe4 };
+
+// P2SH_P2WPKH
+uint8_t YPUB_PREFIX[4] = { 0x04, 0x9d, 0x7c, 0xb2 };
+uint8_t YPRV_PREFIX[4] = { 0x04, 0x9d, 0x78, 0x78 };
+
+// P2WPKH
+uint8_t ZPUB_PREFIX[4] = { 0x04, 0xb2, 0x47, 0x46 };
+uint8_t ZPRV_PREFIX[4] = { 0x04, 0xb2, 0x43, 0x0c };
+
+// testnet prefixes:
+
+// unknown or P2PKH
+uint8_t TPUB_PREFIX[4] = { 0x04, 0x35, 0x87, 0xcf };
+uint8_t TPRV_PREFIX[4] = { 0x04, 0x35, 0x83, 0x94 };
+
+// P2SH_P2WPKH
+uint8_t UPUB_PREFIX[4] = { 0x04, 0x4a, 0x52, 0x62 };
+uint8_t UPRV_PREFIX[4] = { 0x04, 0x4a, 0x4e, 0x28 };
+
+// P2WPKH
+uint8_t VPUB_PREFIX[4] = { 0x04, 0x5f, 0x1c, 0xf6 };
+uint8_t VPRV_PREFIX[4] = { 0x04, 0x5f, 0x18, 0xbc };
 
 // TODO: make friends with PrivateKey to get secret or inherit from it
 HDPrivateKey::HDPrivateKey(void){
@@ -43,8 +56,10 @@ HDPrivateKey::HDPrivateKey(const uint8_t secret[32],
                            uint8_t key_depth,
                            const uint8_t fingerprint_arr[4],
                            uint32_t child_number,
-                           bool use_testnet){
+                           bool use_testnet, 
+                           uint8_t key_type){
 
+    type = key_type;
     privateKey = PrivateKey(secret, true, use_testnet);
     memcpy(chainCode, chain_code, 32);
     depth = key_depth;
@@ -62,13 +77,26 @@ HDPrivateKey::HDPrivateKey(const char * xprvArr){
     if(l == 0){
         return; // decoding error
     }
-    if( (memcmp(arr, XPRV_MAINNET_PREFIX, 4)!=0) && (memcmp(arr, XPRV_TESTNET_PREFIX, 4)!=0) ){
-        // unknown format. TODO: implement yprv, zprv etc
-        return;
-    }
     bool testnet = false;
-    if(memcmp(arr, XPRV_TESTNET_PREFIX, 4)==0){
+    // checking prefix
+    if(memcmp(arr, XPRV_PREFIX, 4)==0){
+        type = UNKNOWN_HD_TYPE;
+    }else if(memcmp(arr, TPRV_PREFIX, 4)==0){
+        type = UNKNOWN_HD_TYPE;
         testnet = true;
+    }else if(memcmp(arr, YPRV_PREFIX, 4)==0){
+        type = P2SH_P2WPKH;
+    }else if(memcmp(arr, UPRV_PREFIX, 4)==0){
+        type = P2SH_P2WPKH;
+        testnet = true;
+    }else if(memcmp(arr, ZPRV_PREFIX, 4)==0){
+        type = P2WPKH;
+    }else if(memcmp(arr, VPRV_PREFIX, 4)==0){
+        type = P2WPKH;
+        testnet = true;
+    }else{
+        // unknown prefix, fail
+        return;
     }
     depth = arr[4];
     memcpy(fingerprint, arr+5, 4);
@@ -132,9 +160,9 @@ bool HDPrivateKey::isValid() const{
 int HDPrivateKey::xprv(char * arr, size_t len) const{
     uint8_t hex[78] = { 0 };
     if(privateKey.testnet){
-        memcpy(hex, XPRV_TESTNET_PREFIX, 4);
+        memcpy(hex, TPRV_PREFIX, 4);
     }else{
-        memcpy(hex, XPRV_MAINNET_PREFIX, 4);
+        memcpy(hex, XPRV_PREFIX, 4);
     }
     hex[4] = depth;
     memcpy(hex+5, fingerprint, 4);
@@ -150,6 +178,16 @@ String HDPrivateKey::xprv() const{
     xprv(arr, sizeof(arr));
     return String(arr);
 }
+String HDPrivateKey::address() const{
+    switch(type){
+        case P2WPKH:
+            return privateKey.segwitAddress();
+        case P2SH_P2WPKH:
+            return privateKey.nestedSegwitAddress();
+        default:
+            return privateKey.address();
+    }
+}
 size_t HDPrivateKey::printTo(Print &p) const{
     char arr[112] = { 0 };
     xprv(arr, sizeof(arr));
@@ -158,9 +196,27 @@ size_t HDPrivateKey::printTo(Print &p) const{
 int HDPrivateKey::xpub(char * arr, size_t len) const{
     uint8_t hex[111] = { 0 }; // TODO: real length, in xpub compressed = true
     if(privateKey.testnet){
-        memcpy(hex, XPUB_TESTNET_PREFIX, 4);
+        switch(type){
+            case P2WPKH:
+                memcpy(hex, VPRV_PREFIX, 4);
+                break;
+            case P2SH_P2WPKH:
+                memcpy(hex, UPRV_PREFIX, 4);
+                break;
+            default:
+                memcpy(hex, TPRV_PREFIX, 4);
+        }
     }else{
-        memcpy(hex, XPUB_MAINNET_PREFIX, 4);
+        switch(type){
+            case P2WPKH:
+                memcpy(hex, ZPRV_PREFIX, 4);
+                break;
+            case P2SH_P2WPKH:
+                memcpy(hex, YPRV_PREFIX, 4);
+                break;
+            default:
+                memcpy(hex, XPRV_PREFIX, 4);
+        }
     }
     hex[4] = depth;
     memcpy(hex+5, fingerprint, 4);
@@ -190,6 +246,7 @@ HDPrivateKey HDPrivateKey::child(uint32_t index) const{
     memcpy(child.fingerprint, hash, 4);
     child.childNumber = index;
     child.depth = depth+1;
+    child.type = type;
 
     uint8_t data[69];
     memcpy(data, sec, l);
@@ -266,6 +323,7 @@ HDPrivateKey HDPrivateKey::hardenedChild(uint32_t index) const{
     index += (1<<31);
     child.childNumber = index;
     child.depth = depth+1;
+    child.type = type;
 
     uint8_t data[37] = { 0 };
     memcpy(data+1, privateKey.secret, 32);
@@ -344,8 +402,9 @@ HDPublicKey::HDPublicKey(const uint8_t point[64],
                            uint8_t key_depth,
                            const uint8_t fingerprint_arr[4],
                            uint32_t child_number,
-                           bool use_testnet){
-
+                           bool use_testnet,
+                           uint8_t key_type){
+    type = key_type;
     testnet = use_testnet;
     publicKey = PublicKey(point, true);
     memcpy(chainCode, chain_code, 32);
@@ -364,13 +423,26 @@ HDPublicKey::HDPublicKey(const char * xpubArr){
     if(l == 0){
         return; // decoding error
     }
-    if( (memcmp(arr, XPUB_MAINNET_PREFIX, 4)!=0) && (memcmp(arr, XPUB_TESTNET_PREFIX, 4)!=0) ){
-        // unknown format. TODO: implement ypub, zpub etc
-        return;
-    }
     testnet = false;
-    if(memcmp(arr, XPUB_TESTNET_PREFIX, 4)==0){
+    // checking prefix
+    if(memcmp(arr, XPUB_PREFIX, 4)==0){
+        type = UNKNOWN_HD_TYPE;
+    }else if(memcmp(arr, TPUB_PREFIX, 4)==0){
+        type = UNKNOWN_HD_TYPE;
         testnet = true;
+    }else if(memcmp(arr, YPUB_PREFIX, 4)==0){
+        type = P2SH_P2WPKH;
+    }else if(memcmp(arr, UPUB_PREFIX, 4)==0){
+        type = P2SH_P2WPKH;
+        testnet = true;
+    }else if(memcmp(arr, ZPUB_PREFIX, 4)==0){
+        type = P2WPKH;
+    }else if(memcmp(arr, VPUB_PREFIX, 4)==0){
+        type = P2WPKH;
+        testnet = true;
+    }else{
+        // unknown prefix, fail
+        return;
     }
     depth = arr[4];
     memcpy(fingerprint, arr+5, 4);
@@ -394,9 +466,27 @@ bool HDPublicKey::isValid() const{
 int HDPublicKey::xpub(char * arr, size_t len) const{
     uint8_t hex[111] = { 0 }; // TODO: real length, in xpub compressed = true
     if(testnet){
-        memcpy(hex, XPUB_TESTNET_PREFIX, 4);
+        switch(type){
+            case P2WPKH:
+                memcpy(hex, VPUB_PREFIX, 4);
+                break;
+            case P2SH_P2WPKH:
+                memcpy(hex, UPUB_PREFIX, 4);
+                break;
+            default:
+                memcpy(hex, TPUB_PREFIX, 4);
+        }
     }else{
-        memcpy(hex, XPUB_MAINNET_PREFIX, 4);
+        switch(type){
+            case P2WPKH:
+                memcpy(hex, ZPUB_PREFIX, 4);
+                break;
+            case P2SH_P2WPKH:
+                memcpy(hex, YPUB_PREFIX, 4);
+                break;
+            default:
+                memcpy(hex, XPUB_PREFIX, 4);
+        }
     }
     hex[4] = depth;
     memcpy(hex+5, fingerprint, 4);
@@ -415,6 +505,16 @@ String HDPublicKey::xpub() const{
     xpub(arr, sizeof(arr));
     return String(arr);
 }
+String HDPublicKey::address() const{
+    switch(type){
+        case P2WPKH:
+            return publicKey.segwitAddress(testnet);
+        case P2SH_P2WPKH:
+            return publicKey.nestedSegwitAddress(testnet);
+        default:
+            return publicKey.address(testnet);
+    }
+}
 size_t HDPublicKey::printTo(Print &p) const{
     char arr[114] = { 0 };
     xpub(arr, sizeof(arr));
@@ -430,6 +530,7 @@ HDPublicKey HDPublicKey::child(uint32_t index) const{
     memcpy(child.fingerprint, hash, 4);
     child.childNumber = index;
     child.depth = depth+1;
+    child.type = type;
 
     uint8_t data[69];
     memcpy(data, sec, l);
