@@ -160,11 +160,28 @@ bool HDPrivateKey::isValid() const{
 int HDPrivateKey::xprv(char * arr, size_t len) const{
     uint8_t hex[78] = { 0 };
     if(privateKey.testnet){
-        memcpy(hex, TPRV_PREFIX, 4);
+        switch(type){
+            case P2WPKH:
+                memcpy(hex, VPRV_PREFIX, 4);
+                break;
+            case P2SH_P2WPKH:
+                memcpy(hex, UPRV_PREFIX, 4);
+                break;
+            default:
+                memcpy(hex, TPRV_PREFIX, 4);
+        }
     }else{
-        memcpy(hex, XPRV_PREFIX, 4);
-    }
-    hex[4] = depth;
+        switch(type){
+            case P2WPKH:
+                memcpy(hex, ZPRV_PREFIX, 4);
+                break;
+            case P2SH_P2WPKH:
+                memcpy(hex, YPRV_PREFIX, 4);
+                break;
+            default:
+                memcpy(hex, XPRV_PREFIX, 4);
+        }
+    }    hex[4] = depth;
     memcpy(hex+5, fingerprint, 4);
     for(uint8_t i=0; i<4; i++){
         hex[12-i] = ((childNumber >> (i*8)) & 0xFF);
@@ -198,24 +215,24 @@ int HDPrivateKey::xpub(char * arr, size_t len) const{
     if(privateKey.testnet){
         switch(type){
             case P2WPKH:
-                memcpy(hex, VPRV_PREFIX, 4);
+                memcpy(hex, VPUB_PREFIX, 4);
                 break;
             case P2SH_P2WPKH:
-                memcpy(hex, UPRV_PREFIX, 4);
+                memcpy(hex, UPUB_PREFIX, 4);
                 break;
             default:
-                memcpy(hex, TPRV_PREFIX, 4);
+                memcpy(hex, TPUB_PREFIX, 4);
         }
     }else{
         switch(type){
             case P2WPKH:
-                memcpy(hex, ZPRV_PREFIX, 4);
+                memcpy(hex, ZPUB_PREFIX, 4);
                 break;
             case P2SH_P2WPKH:
-                memcpy(hex, YPRV_PREFIX, 4);
+                memcpy(hex, YPUB_PREFIX, 4);
                 break;
             default:
-                memcpy(hex, XPRV_PREFIX, 4);
+                memcpy(hex, XPUB_PREFIX, 4);
         }
     }
     hex[4] = depth;
