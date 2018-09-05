@@ -4,7 +4,7 @@
 #include "Bitcoin.h"
 #include "Hash.h"
 #include "Conversion.h"
-#include "utility/sha256.h"
+#include "utility/trezor/sha2.h"
 
 TransactionInput::TransactionInput(void){
     Script empty;

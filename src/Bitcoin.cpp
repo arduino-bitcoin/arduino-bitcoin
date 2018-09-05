@@ -5,8 +5,7 @@
 #include "Hash.h"
 #include "Conversion.h"
 #include "utility/micro-ecc/uECC.h"
-#include "utility/sha256.h"
-#include "utility/sha512.h"
+#include "utility/trezor/sha2.h"
 #include "utility/segwit_addr.h"
 
 // ---------------------------------------------------------------- Signature class
