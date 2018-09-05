@@ -5,8 +5,7 @@
 #include "Hash.h"
 #include "Conversion.h"
 #include "utility/micro-ecc/uECC.h"
-#include "utility/sha256.h"
-#include "utility/sha512.h"
+#include "utility/trezor/sha2.h"
 #include "utility/segwit_addr.h"
 
 // ---------------------------------------------------------------- HDPrivateKey class
@@ -119,9 +118,9 @@ int HDPrivateKey::fromSeed(const uint8_t * seed, size_t seedSize, bool use_testn
     uint8_t raw[64] = { 0 };
     SHA512 sha;
     char key[] = "Bitcoin seed";
-    sha.resetHMAC(key, strlen(key));
-    sha.update(seed, seedSize);
-    sha.finalizeHMAC(key, strlen(key), raw, sizeof(raw));
+    sha.beginHMAC((uint8_t *)key, strlen(key));
+    sha.write(seed, seedSize);
+    sha.endHMAC(raw);
     // sha512Hmac((byte *)key, strlen(key), seed, 64, raw);
     privateKey = PrivateKey(raw, true, use_testnet);
     memcpy(chainCode, raw+32, 32);
@@ -137,17 +136,17 @@ int HDPrivateKey::fromMnemonic(const char * mnemonic, size_t mnemonicSize, const
 
     // first round
     SHA512 sha;
-    sha.resetHMAC(mnemonic, mnemonicSize);
-    sha.update(salt, strlen(salt));
-    sha.update(password, passwordSize);
-    sha.update(ind, sizeof(ind));
-    sha.finalizeHMAC(mnemonic, mnemonicSize, u, sizeof(u));
+    sha.beginHMAC((uint8_t *)mnemonic, mnemonicSize);
+    sha.write((uint8_t *)salt, strlen(salt));
+    sha.write((uint8_t *)password, passwordSize);
+    sha.write(ind, sizeof(ind));
+    sha.endHMAC(u);
     memcpy(seed, u, 64);
     // other rounds
     for(int i=1; i<PBKDF2_ROUNDS; i++){
-        sha.resetHMAC(mnemonic, mnemonicSize);
-        sha.update(u, sizeof(u));
-        sha.finalizeHMAC(mnemonic, mnemonicSize, u, sizeof(u));
+        sha.beginHMAC((uint8_t *)mnemonic, mnemonicSize);
+        sha.write(u, sizeof(u));
+        sha.endHMAC(u);
         for(int j=0; j<sizeof(seed); j++){
             seed[j] = seed[j] ^ u[j];
         }
@@ -273,9 +272,9 @@ HDPrivateKey HDPrivateKey::child(uint32_t index) const{
 
     uint8_t raw[64];
     SHA512 sha;
-    sha.resetHMAC(chainCode, sizeof(chainCode));
-    sha.update(data, l+4);
-    sha.finalizeHMAC(chainCode, sizeof(chainCode), raw, sizeof(raw));
+    sha.beginHMAC(chainCode, sizeof(chainCode));
+    sha.write(data, l+4);
+    sha.endHMAC(raw);
 
     memcpy(child.chainCode, raw+32, 32);
 
@@ -364,9 +363,9 @@ HDPrivateKey HDPrivateKey::hardenedChild(uint32_t index) const{
 
     uint8_t raw[64];
     SHA512 sha;
-    sha.resetHMAC(chainCode, sizeof(chainCode));
-    sha.update(data, sizeof(data));
-    sha.finalizeHMAC(chainCode, sizeof(chainCode), raw, sizeof(raw));
+    sha.beginHMAC(chainCode, sizeof(chainCode));
+    sha.write(data, sizeof(data));
+    sha.endHMAC(raw);
 
     memcpy(child.chainCode, raw+32, 32);
 
@@ -571,9 +570,9 @@ HDPublicKey HDPublicKey::child(uint32_t index) const{
 
     uint8_t raw[64];
     SHA512 sha;
-    sha.resetHMAC(chainCode, sizeof(chainCode));
-    sha.update(data, l+4);
-    sha.finalizeHMAC(chainCode, sizeof(chainCode), raw, sizeof(raw));
+    sha.beginHMAC(chainCode, sizeof(chainCode));
+    sha.write(data, l+4);
+    sha.endHMAC(raw);
 
     memcpy(child.chainCode, raw+32, 32);
 

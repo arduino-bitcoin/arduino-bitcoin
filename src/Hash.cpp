@@ -1,98 +1,239 @@
-#include <stdint.h>
-#include <string.h>
 #include "Hash.h"
-#include "utility/rmd160.h"
-#include "utility/sha256.h"
-#include "utility/sha512.h"
+#include "utility/trezor/sha2.h"
+#include "utility/trezor/ripemd160.h"
 
-/*
- *  Single line hash functions.
- */
-
-int rmd160(byte message[], size_t len, byte hash[20]){
-
-   dword         MDbuf[5];            /* contains (A, B, C, D(, E))   */
-   dword         X[16];               /* current 16-word chunk        */
-   dword         i;                   /* counter                      */
-   dword         length;              /* length in bytes of message   */
-   dword         nbytes;              /* # of bytes not yet processed */
-
-   /* initialize */
-   MDinit(MDbuf);
-   // length = (dword)strlen((char *)message);
-   length = len;
-
-   /* process message in 16-word chunks */
-   for (nbytes=length; nbytes > 63; nbytes-=64) {
-      for (i=0; i<16; i++) {
-         X[i] = BYTES_TO_DWORD(message);
-         message += 4;
-      }
-      MDcompress(MDbuf, X);
-   }                                    /* length mod 64 bytes left */
-
-   /* finish: */
-   MDfinish(MDbuf, message, length, 0);
-
-   for (i=0; i<20; i+=4) {
-      hash[i]   =  MDbuf[i>>2];         /* implicit cast to byte  */
-      hash[i+1] = (MDbuf[i>>2] >>  8);  /*  extracts the 8 least  */
-      hash[i+2] = (MDbuf[i>>2] >> 16);  /*  significant bits.     */
-      hash[i+3] = (MDbuf[i>>2] >> 24);
-   }
-
-   return 20;
+// generic funtcions for single line hash
+static size_t hashData(HashAlgorithm * algo, const uint8_t * data, size_t len, uint8_t * hash){
+    algo->begin();
+    algo->write(data, len);
+    return algo->end(hash);
 }
 
-int sha256(byte message[], size_t len, byte hash[32]){
+#if defined(ARDUINO) && ARDUINO >= 100
+static size_t hashString(HashAlgorithm * algo, const String s, uint8_t * hash){
+    size_t len = s.length();
+    char * arr;
+    arr = (char *)malloc(len+1);
+    s.toCharArray(arr, len+1);
+    size_t r = hashData(algo, (uint8_t *)arr, len, hash);
+    free(arr);
+    return r;
+}
+#endif
 
-	struct SHA256_CTX ctx;
+// void HashAlgorithm::clear(){
+//     if(o_pad != NULL){
+//         memset(o_pad, 0, block_size);
+//         free(o_pad);
+//     }
+// }
+// void HashAlgorithm::beginHMAC(const uint8_t * key, size_t keySize){
+//     clear();
+//     uint8_t * i_pad = (uint8_t *)calloc(block_size, sizeof(uint8_t));
+//     if(keySize > block_size){
+//         begin();
+//         write(key, keySize);
+//         end(i_pad);
+//     }else{
+//         memcpy(i_pad, key, keySize);
+//     }
+//     o_pad = (uint8_t *)calloc(block_size, sizeof(uint8_t));
+//     for(int i = 0; i < block_size; i++){
+//         o_pad[i] = i_pad[i] ^ 0x5c;
+//         i_pad[i] ^= 0x36;
+//     }
+//     begin();
+//     write(i_pad, block_size);
+//     memset(i_pad, 0, block_size);
+//     free(i_pad);
+// }
 
-	sha256_init(&ctx);
-	sha256_update(&ctx, message, len);
-	sha256_final(&ctx, hash);
-	return 32;
+// size_t HashAlgorithm::endHMAC(uint8_t * hmac){
+//     end(hmac);
+//     begin();
+//     write(o_pad, block_size);
+//     write(hmac, digest_size);
+//     end(hmac);
+//     clear();
+//     return digest_size;
+// }
+
+/************************* RIPEMD-160 *************************/
+
+int rmd160(const uint8_t * data, size_t len, uint8_t hash[20]){
+    RMD160 rmd;
+    return hashData(&rmd, data, len, hash);
+}
+int rmd160(const char * data, size_t len, uint8_t hash[20]){
+    return rmd160((uint8_t*)data, len, hash);
+}
+#if defined(ARDUINO) && ARDUINO >= 100
+int rmd160(const String data, uint8_t hash[20]){
+    RMD160 rmd;
+    return hashString(&rmd, data, hash);
+}
+#endif
+
+void RMD160::begin(){
+    ripemd160_Init(&ctx);
+};
+size_t RMD160::write(const uint8_t * data, size_t len){
+    ripemd160_Update(&ctx, data, len);
+    return len;
+}
+size_t RMD160::write(uint8_t b){
+    uint8_t arr[1] = { b };
+    ripemd160_Update(&ctx, arr, 1);
+    return 1;
+}
+size_t RMD160::end(uint8_t hash[20]){
+    ripemd160_Final(&ctx, hash);
+    return 20;
 }
 
-int hash160(byte message[], size_t len, byte hash[32]){
-	byte buffer[32] = { 0 };
+/************************** SHA-256 **************************/
 
-	sha256(message, len, buffer);
-	rmd160(buffer, sizeof(buffer), hash);
-	memset(buffer, 0, 32);
-	return 20;
+int sha256(const uint8_t * data, size_t len, uint8_t hash[32]){
+    SHA256 sha;
+    return hashData(&sha, data, len, hash);
+}
+int sha256(const char * data, size_t len, uint8_t hash[32]){
+    return sha256((uint8_t*)data, len, hash);
+}
+#if defined(ARDUINO) && ARDUINO >= 100
+int sha256(const String data, uint8_t hash[32]){
+    SHA256 sha;
+    return hashString(&sha, data, hash);
+}
+#endif
+
+int sha256Hmac(const uint8_t * key, size_t keyLen, const uint8_t * data, size_t dataLen, uint8_t hash[32]){
+    hmac_sha256(key, keyLen, data, dataLen, hash);
+    return 32;
 }
 
-int doubleSha(byte message[], size_t len, byte hash[32]){
-	byte buffer[32] = { 0 };
-
-	sha256(message, len, buffer);
-	sha256(buffer, sizeof(buffer), hash);
-	memset(buffer, 0, 32);
-	return 32;
+void SHA256::begin(){
+    sha256_Init(&ctx.ctx);
+};
+void SHA256::beginHMAC(const uint8_t * key, size_t keySize){
+    hmac_sha256_Init(&ctx, key, keySize);
+}
+size_t SHA256::write(const uint8_t * data, size_t len){
+    sha256_Update(&ctx.ctx, data, len);
+    return len;
+}
+size_t SHA256::write(uint8_t b){
+    uint8_t arr[1] = { b };
+    sha256_Update(&ctx.ctx, arr, 1);
+    return 1;
+}
+size_t SHA256::end(uint8_t hash[32]){
+    sha256_Final(&ctx.ctx, hash);
+    return 32;
+}
+size_t SHA256::endHMAC(uint8_t hmac[32]){
+    hmac_sha256_Final(&ctx, hmac);
+    return 32;
 }
 
-int sha512(byte message[], size_t len, byte hash[64]){
-  SHA512 sha;
-  sha.reset();
-  sha.update(message, len);
-  sha.finalize(hash, 64);
-  return 64;
+/************************* Hash-160 **************************/
+/******************** rmd160( sha256( m ) ) ******************/
+
+int hash160(const uint8_t * data, size_t len, uint8_t hash[20]){
+    Hash160 h160;
+    return hashData(&h160, data, len, hash);
+}
+int hash160(const char * data, size_t len, uint8_t hash[20]){
+    return hash160((uint8_t*)data, len, hash);
+}
+#if defined(ARDUINO) && ARDUINO >= 100
+int hash160(const String data, uint8_t hash[20]){
+    Hash160 h160;
+    return hashString(&h160, data, hash);
+}
+#endif
+
+size_t Hash160::end(uint8_t hash[20]){
+    uint8_t h[32];
+    sha256_Final(&ctx.ctx, h);
+    rmd160(h, 32, hash);
+    return 20;
 }
 
-int sha512Hmac(byte key[], size_t keyLen, byte message[], size_t messageLen, byte hash[64]){
-  SHA512 sha;
-  sha.resetHMAC(key, keyLen);
-  sha.update(message, messageLen);
-  sha.finalizeHMAC(key, keyLen, hash, 64);
-  return 64;
+/********************** Double SHA-256 ***********************/
+/******************** sha256( sha256( m ) ) ******************/
+
+int doubleSha(const uint8_t * data, size_t len, uint8_t hash[32]){
+    DoubleSha sha;
+    return hashData(&sha, data, len, hash);
+}
+int doubleSha(const char * data, size_t len, uint8_t hash[32]){
+    return doubleSha((uint8_t*)data, len, hash);
+}
+#if defined(ARDUINO) && ARDUINO >= 100
+int doubleSha(const String data, uint8_t hash[32]){
+    DoubleSha sha;
+    return hashString(&sha, data, hash);
+}
+#endif
+
+size_t DoubleSha::end(uint8_t hash[32]){
+    uint8_t h[32];
+    sha256_Final(&ctx.ctx, h);
+    sha256(h, 32, hash);
+    return 32;
+}
+
+/************************** SHA-512 **************************/
+
+int sha512(const uint8_t * data, size_t len, uint8_t hash[64]){
+    SHA512 sha;
+    return hashData(&sha, data, len, hash);
+}
+int sha512(const char * data, size_t len, uint8_t hash[64]){
+    return sha512((uint8_t*)data, len, hash);
+}
+#if defined(ARDUINO) && ARDUINO >= 100
+int sha512(const String data, uint8_t hash[64]){
+    SHA512 sha;
+    return hashString(&sha, data, hash);
+}
+#endif
+
+void SHA512::begin(){
+    sha512_Init(&ctx.ctx);
+};
+void SHA512::beginHMAC(const uint8_t * key, size_t keySize){
+    hmac_sha512_Init(&ctx, key, keySize);
+}
+size_t SHA512::write(const uint8_t * data, size_t len){
+    sha512_Update(&ctx.ctx, data, len);
+    return len;
+}
+size_t SHA512::write(uint8_t b){
+    uint8_t arr[1] = { b };
+    sha512_Update(&ctx.ctx, arr, 1);
+    return 1;
+}
+size_t SHA512::end(uint8_t hash[64]){
+    sha512_Final(&ctx.ctx, hash);
+    return 64;
+}
+size_t SHA512::endHMAC(uint8_t hmac[64]){
+    hmac_sha512_Final(&ctx, hmac);
+    return 64;
+}
+
+int sha512Hmac(const uint8_t * key, size_t keyLen, const uint8_t * data, size_t dataLen, uint8_t hash[64]){
+    hmac_sha512(key, keyLen, data, dataLen, hash);
+    return 64;
 }
 
 // following functions are required by uECC library to sign with deterministic k
 
 void init_SHA256(const uECC_HashContext *base) {
     SHA256_HashContext *context = (SHA256_HashContext *)base;
-    sha256_init(&context->ctx);
+    sha256_Init(&context->ctx);
 }
 
 void update_SHA256(const uECC_HashContext *base,
@@ -101,10 +242,10 @@ void update_SHA256(const uECC_HashContext *base,
     uint8_t msg[255] = {0};
     memcpy(msg, message, message_size);
     SHA256_HashContext *context = (SHA256_HashContext *)base;
-    sha256_update(&context->ctx, msg, message_size);
+    sha256_Update(&context->ctx, msg, message_size);
 }
 
 void finish_SHA256(const uECC_HashContext *base, uint8_t *hash_result) {
     SHA256_HashContext *context = (SHA256_HashContext *)base;
-    sha256_final(&context->ctx, hash_result);
+    sha256_Final(&context->ctx, hash_result);
 }

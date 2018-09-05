@@ -1,5 +1,5 @@
 #include <Hash.h>  // all single-line hashing algorithms
-#include <BaseX.h> // to print byte arrays in hex format
+#include <Conversion.h> // to print byte arrays in hex format
 
 void setup() {
   Serial.begin(9600);
