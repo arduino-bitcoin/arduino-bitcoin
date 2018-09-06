@@ -1229,10 +1229,10 @@ static void bits2int(uECC_word_t *native,
     }
 }
 
-static int uECC_sign_with_k(const uint8_t *private_key,
+int uECC_sign_with_k(const uint8_t *private_key,
                             const uint8_t *message_hash,
                             unsigned hash_size,
-                            uECC_word_t *k,
+                            uint8_t *k,
                             uint8_t *signature,
                             uECC_Curve curve) {
 

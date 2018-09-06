@@ -21,43 +21,6 @@ static size_t hashString(HashAlgorithm * algo, const String s, uint8_t * hash){
 }
 #endif
 
-// void HashAlgorithm::clear(){
-//     if(o_pad != NULL){
-//         memset(o_pad, 0, block_size);
-//         free(o_pad);
-//     }
-// }
-// void HashAlgorithm::beginHMAC(const uint8_t * key, size_t keySize){
-//     clear();
-//     uint8_t * i_pad = (uint8_t *)calloc(block_size, sizeof(uint8_t));
-//     if(keySize > block_size){
-//         begin();
-//         write(key, keySize);
-//         end(i_pad);
-//     }else{
-//         memcpy(i_pad, key, keySize);
-//     }
-//     o_pad = (uint8_t *)calloc(block_size, sizeof(uint8_t));
-//     for(int i = 0; i < block_size; i++){
-//         o_pad[i] = i_pad[i] ^ 0x5c;
-//         i_pad[i] ^= 0x36;
-//     }
-//     begin();
-//     write(i_pad, block_size);
-//     memset(i_pad, 0, block_size);
-//     free(i_pad);
-// }
-
-// size_t HashAlgorithm::endHMAC(uint8_t * hmac){
-//     end(hmac);
-//     begin();
-//     write(o_pad, block_size);
-//     write(hmac, digest_size);
-//     end(hmac);
-//     clear();
-//     return digest_size;
-// }
-
 /************************* RIPEMD-160 *************************/
 
 int rmd160(const uint8_t * data, size_t len, uint8_t hash[20]){
@@ -227,25 +190,4 @@ size_t SHA512::endHMAC(uint8_t hmac[64]){
 int sha512Hmac(const uint8_t * key, size_t keyLen, const uint8_t * data, size_t dataLen, uint8_t hash[64]){
     hmac_sha512(key, keyLen, data, dataLen, hash);
     return 64;
-}
-
-// following functions are required by uECC library to sign with deterministic k
-
-void init_SHA256(const uECC_HashContext *base) {
-    SHA256_HashContext *context = (SHA256_HashContext *)base;
-    sha256_Init(&context->ctx);
-}
-
-void update_SHA256(const uECC_HashContext *base,
-                   const uint8_t *message,
-                   unsigned message_size) {
-    uint8_t msg[255] = {0};
-    memcpy(msg, message, message_size);
-    SHA256_HashContext *context = (SHA256_HashContext *)base;
-    sha256_Update(&context->ctx, msg, message_size);
-}
-
-void finish_SHA256(const uECC_HashContext *base, uint8_t *hash_result) {
-    SHA256_HashContext *context = (SHA256_HashContext *)base;
-    sha256_Final(&context->ctx, hash_result);
 }

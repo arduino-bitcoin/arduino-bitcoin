@@ -32,7 +32,16 @@ typedef struct {
 	uint8_t v[32], k[32];
 } rfc6979_state;
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 void init_rfc6979(const uint8_t *priv_key, const uint8_t *hash, rfc6979_state *rng);
 void generate_rfc6979(uint8_t rnd[32], rfc6979_state *rng);
+
+#ifdef __cplusplus
+} /* end of extern "C" */
+#endif
 
 #endif

@@ -43,16 +43,17 @@ void setup() {
   Serial.print("Inputs:  ");
   Serial.println(tx.inputsNumber);
   for(int i=0; i< tx.inputsNumber; i++){
+    TransactionInput txin = tx.txIns[i];
     Serial.print("\tHash:          ");
-    Serial.println(toHex(tx.txIns[i].hash, 32));
+    Serial.println(toHex(txin.hash, 32));
     Serial.print("\tOutput index:  ");
-    Serial.println(tx.txIns[i].outputIndex);
+    Serial.println(txin.outputIndex);
     Serial.print("\tScript length: ");
-    Serial.println(tx.txIns[i].scriptSig.length());
+    Serial.println(txin.scriptSig.length());
     Serial.print("\tScript:        ");
-    Serial.println(tx.txIns[i].scriptSig);
+    Serial.println(txin.scriptSig);
     Serial.print("\tSequence:      ");
-    Serial.println(tx.txIns[i].sequence);
+    Serial.println(txin.sequence);
     if(tx.isSegwit()){
       Serial.println("\tSEGWIT!");
     }

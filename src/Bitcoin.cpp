@@ -6,6 +6,7 @@
 #include "Conversion.h"
 #include "utility/micro-ecc/uECC.h"
 #include "utility/trezor/sha2.h"
+#include "utility/trezor/rfc6979.h"
 #include "utility/segwit_addr.h"
 
 // ---------------------------------------------------------------- Signature class
@@ -517,8 +518,12 @@ Signature PrivateKey::sign(const uint8_t hash[32]) const{
     uint8_t signature[64] = {0};
     const struct uECC_Curve_t * curve = uECC_secp256k1();
 
-    SHA256_HashContext ctx = {{&init_SHA256, &update_SHA256, &finish_SHA256, 64, 32, tmp}};
-    int result = uECC_sign_deterministic(secret, hash, 32, &ctx.uECC, signature, curve);
+    rfc6979_state rng;
+    uint8_t rnd[32];
+    init_rfc6979(secret, hash, &rng);
+    generate_rfc6979(rnd, &rng);
+
+    uECC_sign_with_k(secret, hash, 32, rnd, signature, curve);
     Signature sig(signature, signature+32);
     return sig;
 }

@@ -338,6 +338,13 @@ int uECC_sign_deterministic(const uint8_t *private_key,
                             uint8_t *signature,
                             uECC_Curve curve);
 
+int uECC_sign_with_k(const uint8_t *private_key,
+                            const uint8_t *message_hash,
+                            unsigned hash_size,
+                            uint8_t *k,
+                            uint8_t *signature,
+                            uECC_Curve curve);
+
 /* uECC_add_points() function
 Calculates sum of two points on curve
 

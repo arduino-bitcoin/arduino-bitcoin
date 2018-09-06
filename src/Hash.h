@@ -122,17 +122,4 @@ protected:
     HMAC_SHA512_CTX ctx;
 };
 
-/*
- * Following functions are required by uECC library to sign with deterministic k
- */
-
-typedef struct SHA256_HashContext {
-    uECC_HashContext uECC;
-    SHA256_CTX ctx;
-} SHA256_HashContext;
-
-void init_SHA256(const uECC_HashContext *base);
-void update_SHA256(const uECC_HashContext *base, const uint8_t *message, unsigned message_size);
-void finish_SHA256(const uECC_HashContext *base, uint8_t *hash_result);
-
 #endif // __HASH_H__18NLNNCSJ2
