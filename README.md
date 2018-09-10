@@ -10,6 +10,8 @@ This library is currently in alpha. It is already usable and have most of featur
 
 We will appreciate your help in making this library better, issues and pull requests are very welcome!
 
+If you want to use this lib in your projects, contribute, or just chat, join our [Slack](https://join.slack.com/t/arduino-bitcoin/shared_invite/enQtNDMzNzcyNTExNzUxLWM3OTQ5MWExYWM3MGU4ZGJkN2E3ZDE5MTljNWIyNTBkMDI0YmZmNmFmY2M4MDIxMjExZjUzNmY3NWFlMWFlNzc) or [Telegram](https://t.me/joinchat/GMeZqAr-ECOsXOKIzTX4EQ) group.
+
 ## Documentation
 
 Currently we are working on documentation. [Installation instructions](docs/#installation) and [quickstart guide](docs/#quickstart) are available in the [docs folder](docs/). Library reference is on the way.
