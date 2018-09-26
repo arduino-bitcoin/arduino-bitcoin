@@ -259,6 +259,7 @@ int uECC_sign(const uint8_t *private_key,
               const uint8_t *message_hash,
               unsigned hash_size,
               uint8_t *signature,
+              uint8_t *index,
               uECC_Curve curve);
 
 /* uECC_HashContext structure.
@@ -343,7 +344,9 @@ int uECC_sign_with_k(const uint8_t *private_key,
                             unsigned hash_size,
                             uint8_t *k,
                             uint8_t *signature,
-                            uECC_Curve curve);
+                            uint8_t *index, // odd/even R
+                            uECC_Curve curve
+                            );
 
 /* uECC_add_points() function
 Calculates sum of two points on curve

@@ -34,6 +34,11 @@ Signature::Signature(const char * der){
 Signature::Signature(const String der){
     parseHex(der);
 }
+// Signature::Signature(const Signature &other){
+//     memcpy(r, other.r, 32);
+//     memcpy(s, other.s, 32);
+//     index = other.index;
+// }
 size_t Signature::parse(const uint8_t * raw, size_t rawLen){
     // Format: 0x30 [total-length] 0x02 [R-length] [R] 0x02 [S-length] [S]
     // * total-length: 1-byte length descriptor of everything that follows
@@ -226,16 +231,22 @@ void Signature::bin(uint8_t arr[64]) const{
     memcpy(arr, r, 32);
     memcpy(arr+32, s, 32);
 }
-size_t Signature::printTo(Print& p) const{
-    uint8_t arr[72];
-    size_t l = der(arr, sizeof(arr));
-    return toHex(arr, l, p);
-}
+// size_t Signature::printTo(Print& p) const{
+//     uint8_t arr[72];
+//     size_t l = der(arr, sizeof(arr));
+//     return toHex(arr, l, p);
+// }
 Signature::operator String(){
     uint8_t arr[72] = { 0 };
     int len = der(arr, sizeof(arr));
     return toHex(arr, len); 
 };
+// Signature &Signature::operator=(Signature const &other){
+//     memcpy(r, other.r, 32);
+//     memcpy(s, other.s, 32);
+//     index = other.index;
+//     return *this; 
+// };
 
 // ---------------------------------------------------------------- PublicKey class
 
@@ -514,7 +525,7 @@ String PrivateKey::nestedSegwitAddress() const{
 
 
 Signature PrivateKey::sign(const uint8_t hash[32]) const{
-    uint8_t tmp[32 + 32 + 64] = {0};
+    // uint8_t tmp[32 + 32 + 64] = {0};
     uint8_t signature[64] = {0};
     const struct uECC_Curve_t * curve = uECC_secp256k1();
 
@@ -523,9 +534,25 @@ Signature PrivateKey::sign(const uint8_t hash[32]) const{
     init_rfc6979(secret, hash, &rng);
     generate_rfc6979(rnd, &rng);
 
-    uECC_sign_with_k(secret, hash, 32, rnd, signature, curve);
+    uint8_t i = 0;
+    uECC_sign_with_k(secret, hash, 32, rnd, signature, &i, curve);
     Signature sig(signature, signature+32);
+    sig.index = i;
     return sig;
+}
+int PrivateKey::sign_bin(const uint8_t * hash, size_t hashSize, uint8_t * sig, size_t sigSize) const{
+    // uint8_t tmp[32 + 32 + 64] = {0};
+    const struct uECC_Curve_t * curve = uECC_secp256k1();
+
+    rfc6979_state rng;
+    uint8_t rnd[32];
+    init_rfc6979(secret, hash, &rng);
+    generate_rfc6979(rnd, &rng);
+
+    uint8_t i = 0;
+    uECC_sign(secret, hash, hashSize, sig, &i, curve);
+    sig[64] = i;
+    return 65;
 }
 
 bool PrivateKey::operator==(const PrivateKey& other) const{

@@ -2,6 +2,7 @@
 
 #include "uECC.h"
 #include "uECC_vli.h"
+#include <stdlib.h>
 
 #ifndef uECC_RNG_MAX_TRIES
     #define uECC_RNG_MAX_TRIES 64
@@ -1234,7 +1235,9 @@ int uECC_sign_with_k(const uint8_t *private_key,
                             unsigned hash_size,
                             uint8_t *k,
                             uint8_t *signature,
-                            uECC_Curve curve) {
+                            uint8_t *index,
+                            uECC_Curve curve
+                            ) {
 
     uECC_word_t tmp[uECC_MAX_WORDS];
     uECC_word_t s[uECC_MAX_WORDS];
@@ -1259,6 +1262,13 @@ int uECC_sign_with_k(const uint8_t *private_key,
     EccPoint_mult(p, curve->G, k2[!carry], 0, num_n_bits + 1, curve);
     if (uECC_vli_isZero(p, num_words)) {
         return 0;
+    }
+    if(index != NULL){
+#if uECC_VLI_NATIVE_LITTLE_ENDIAN
+        (*index) = p[uECC_MAX_WORDS] % 2;
+#else
+        (*index) = p[2*uECC_MAX_WORDS-1] % 2;
+#endif
     }
 
     /* If an RNG function was specified, get a random number
@@ -1314,6 +1324,7 @@ int uECC_sign(const uint8_t *private_key,
               const uint8_t *message_hash,
               unsigned hash_size,
               uint8_t *signature,
+              uint8_t *index,
               uECC_Curve curve) {
     uECC_word_t k[uECC_MAX_WORDS];
     uECC_word_t tries;
@@ -1323,7 +1334,7 @@ int uECC_sign(const uint8_t *private_key,
             return 0;
         }
 
-        if (uECC_sign_with_k(private_key, message_hash, hash_size, k, signature, curve)) {
+        if (uECC_sign_with_k(private_key, message_hash, hash_size, k, signature, index, curve)) {
             return 1;
         }
     }
@@ -1439,7 +1450,7 @@ int uECC_sign_deterministic(const uint8_t *private_key,
                 mask >> ((bitcount_t)(num_n_words * uECC_WORD_SIZE * 8 - num_n_bits));
         }
 
-        if (uECC_sign_with_k(private_key, message_hash, hash_size, T, signature, curve)) {
+        if (uECC_sign_with_k(private_key, message_hash, hash_size, T, signature, NULL, curve)) {
             return 1;
         }
 

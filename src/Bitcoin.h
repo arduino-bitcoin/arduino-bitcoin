@@ -49,11 +49,12 @@ class PublicKey; // forward definition
     Signature class.
     Reference: https://github.com/bitcoin/bips/blob/master/bip-0066.mediawiki
 */
-class Signature : public Printable{
+class Signature{// : public Printable{
 private:
+public:
     uint8_t r[32];
     uint8_t s[32];
-public:
+
     Signature(); // empty constructor 
     Signature(const uint8_t r_arr[32], const uint8_t s_arr[32]); // constructor using r and s values
     Signature(const uint8_t * der, size_t derLen);            // parses raw array
@@ -61,6 +62,9 @@ public:
     Signature(Stream &s);                                     // parses raw array from Stream
     explicit Signature(const char * der);                     // parses hex string
     Signature(const String der);                              // parses String
+    // Signature(const Signature &other);
+
+    uint8_t index = 0; // used to derive pubkey from signature
 
     // encodes signature in der format and writes it to array or stream
     size_t der(uint8_t * arr, size_t len) const;              // encodes signature in der format and writes it to array
@@ -86,7 +90,7 @@ public:
 
     // Prints der-encoded signature in hex format to any stream / display / file
     // For example allows to do Serial.print(signature)
-    size_t printTo(Print& p) const;
+    // size_t printTo(Print& p) const;
 
     // Operators overloading
 
@@ -99,6 +103,8 @@ public:
     // Two signatures are equal if R and S are the same
     bool operator==(const Signature& other) const{ return (memcmp(r, other.r, 32) == 0) && (memcmp(s, other.s, 32) == 0); };
     bool operator!=(const Signature& other) const{ return !operator==(other); };
+    // TODO: 
+    // Signature &operator=(Signature const &other);
 };
 
 /* 
@@ -240,6 +246,7 @@ public:
     int fromWIF(const char * wifArr);
     PublicKey publicKey() const;
     Signature sign(const uint8_t hash[32]) const; // pass 32-byte hash of the message here
+    int sign_bin(const uint8_t * hash, size_t hashSize, uint8_t * sig, size_t sigSize) const;
 
     // Aliases for .publicKey().address() etc
     int address(char * address, size_t len) const;
