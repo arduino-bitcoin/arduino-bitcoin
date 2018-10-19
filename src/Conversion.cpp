@@ -448,6 +448,9 @@ ByteStream::~ByteStream(void){
     }
 }
 int ByteStream::available(){
+    if(cursor >= len){
+        return 0;
+    }
     return len-cursor;
 }
 void ByteStream::flush(){
@@ -462,7 +465,7 @@ int ByteStream::peek(){
     }
 }
 int ByteStream::read(){
-    if(available()){
+    if(available() > 0){
         uint8_t c =  buf[cursor];
         cursor++;
         return c;

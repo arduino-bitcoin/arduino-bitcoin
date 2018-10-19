@@ -346,20 +346,31 @@ size_t Transaction::parse(Stream &s){
             len += l;
         }
     }
-
+    // FIXME: terrible workaround for electrum transaction
+    // FIXME: should detect if there is no witness
+    uint8_t next = s.peek();
     if(is_segwit){
-        for(int i=0; i<inputsNumber; i++){
-            Script witness_program;
-            size_t numElements = readVarInt(s);
-            uint8_t arr[9];
-            uint8_t l = writeVarInt(numElements, arr, sizeof(arr));
-            witness_program.push(arr, l);
-            for(int j = 0; j < numElements; j++){
-                Script element;
-                element.parse(s);
-                witness_program.push(element);
+        if(next < 0xf0){
+            for(int i=0; i<inputsNumber; i++){
+                Script witness_program;
+                size_t numElements = readVarInt(s);
+                uint8_t arr[9];
+                uint8_t l = writeVarInt(numElements, arr, sizeof(arr));
+                witness_program.push(arr, l);
+                for(int j = 0; j < numElements; j++){
+                    Script element;
+                    element.parse(s);
+                    witness_program.push(element);
+                }
+                txIns[i].witnessProgram = witness_program;
             }
-            txIns[i].witnessProgram = witness_program;
+        }else{
+            for(int i=0; i<inputsNumber; i++){
+                Script witness_program;
+                uint8_t arr[] = { 0 };
+                witness_program.push(arr, sizeof(arr));
+                txIns[i].witnessProgram = witness_program;
+            }
         }
     }
 
